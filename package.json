@@ -19,6 +19,7 @@
     "firebase": "^13.2.0",
     "lucide-react-native": "^1.70.0",
     "react": "19.3.0",
+    "react-dom": "^19.3.0",
     "react-native": "0.88.1",
     "react-native-gesture-handler": "~3.3.0",
     "react-native-maps": "1.29.11",
