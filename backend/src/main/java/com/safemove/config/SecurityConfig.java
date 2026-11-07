@@ -1,11 +1,6 @@
 package com.safemove.config;
 
-import com.nimbusds.jose.jwk.source.ImmutableSecret;
-import com.safemove.web.JsonErrorHandlers;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,13 +9,14 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -45,28 +41,20 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /**
+     * Valida os ID tokens do Firebase (RS256) com as chaves públicas do Google, conferindo
+     * emissor (securetoken.google.com/<projeto>) e audiência (id do projeto).
+     */
     @Bean
-    PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
-    @Bean
-    SecretKey jwtKey(@Value("${safemove.jwt.secret}") String secret) {
-        byte[] bytes = secret.getBytes(StandardCharsets.UTF_8);
-        if (bytes.length < 32) {
-            throw new IllegalStateException("safemove.jwt.secret precisa ter pelo menos 32 caracteres.");
-        }
-        return new SecretKeySpec(bytes, "HmacSHA256");
-    }
-
-    @Bean
-    JwtEncoder jwtEncoder(SecretKey jwtKey) {
-        return new NimbusJwtEncoder(new ImmutableSecret<>(jwtKey));
-    }
-
-    @Bean
-    JwtDecoder jwtDecoder(SecretKey jwtKey) {
-        return NimbusJwtDecoder.withSecretKey(jwtKey).macAlgorithm(MacAlgorithm.HS256).build();
+    JwtDecoder jwtDecoder(@Value("${safemove.firebase.project-id}") String projectId) {
+        String issuer = "https://securetoken.google.com/" + projectId;
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(
+                "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com").build();
+        OAuth2TokenValidator<Jwt> audiencia = jwt -> jwt.getAudience().contains(projectId)
+                ? OAuth2TokenValidatorResult.success()
+                : OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token", "Audiência inválida.", null));
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(JwtValidators.createDefaultWithIssuer(issuer), audiencia));
+        return decoder;
     }
 
     @Bean

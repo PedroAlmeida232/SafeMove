@@ -2,6 +2,7 @@ package com.safemove.auth;
 
 import com.safemove.auth.AuthDtos.AuthResponse;
 import com.safemove.auth.AuthDtos.LoginRequest;
+import com.safemove.auth.AuthDtos.RefreshRequest;
 import com.safemove.auth.AuthDtos.RegistroRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -30,5 +31,10 @@ public class AuthController {
     @PostMapping("/login")
     public AuthResponse entrar(@Valid @RequestBody LoginRequest req) {
         return auth.entrar(req);
+    }
+
+    @PostMapping("/refresh")
+    public AuthResponse renovar(@Valid @RequestBody RefreshRequest req) {
+        return auth.renovar(req);
     }
 }
