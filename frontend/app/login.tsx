@@ -3,9 +3,8 @@ import { useRef, useState, type ComponentProps } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, type TextInputInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { mensagemDeErro } from '../src/api/client';
+import { mensagemDeErro, USE_MOCK } from '../src/api/client';
 import { useAuth } from '../src/auth/AuthProvider';
-import { firebaseConfigurado } from '../src/auth/firebase';
 import { AppLogo } from '../src/components/AppLogo';
 import { PrimaryButton, TextButton } from '../src/components/Buttons';
 import { GroupedList } from '../src/components/GroupedList';
@@ -146,7 +145,7 @@ export default function LoginScreen() {
           </Text>
         ) : null}
 
-        {!firebaseConfigurado && process.env.EXPO_PUBLIC_USE_MOCK === 'true' ? (
+        {USE_MOCK ? (
           <Text variant="caption" color={colors.secondaryLabel} style={styles.demo}>
             Modo demonstração: qualquer e-mail e senha com 6+ caracteres funcionam.
           </Text>

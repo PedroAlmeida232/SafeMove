@@ -12,7 +12,7 @@ const TIMEOUT_MS = 20000;
 type TokenProvider = () => Promise<string | null>;
 let tokenProvider: TokenProvider = async () => null;
 
-/** O AuthProvider registra aqui como obter o idToken do usuário atual. */
+/** O AuthProvider registra aqui como obter o token (JWT do backend) da sessão atual. */
 export function setTokenProvider(fn: TokenProvider): void {
   tokenProvider = fn;
 }
@@ -20,7 +20,7 @@ export function setTokenProvider(fn: TokenProvider): void {
 type Opcoes = {
   method?: Metodo;
   body?: unknown;
-  /** Rotas 🔒: envia Authorization: Bearer <idToken>. */
+  /** Rotas 🔒: envia Authorization: Bearer <token>. */
   auth?: boolean;
   query?: Record<string, string | number | undefined>;
 };

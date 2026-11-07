@@ -1,18 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQueryClient } from '@tanstack/react-query';
-import { FirebaseError } from 'firebase/app';
-import {
-  createUserWithEmailAndPassword,
-  onIdTokenChanged,
-  signInWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  updateProfile,
-} from 'firebase/auth';
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import * as SecureStore from 'expo-secure-store';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Platform } from 'react-native';
 
-import { setTokenProvider, USE_MOCK } from '../api/client';
-import { buscarUsuarioMe, queryKeys } from '../api/hooks';
-import { auth, firebaseConfigurado } from './firebase';
+import { ApiError, request, setTokenProvider } from '../api/client';
+import { buscarUsuarioMe } from '../api/hooks';
+import type { AuthResponse, Usuario } from '../api/types';
 
 export type UsuarioAuth = {
   uid: string;
@@ -30,126 +24,95 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-/** Sem Firebase configurado e com USE_MOCK=true, usamos uma sessão de demonstração. */
-const MODO_DEMO = !firebaseConfigurado && USE_MOCK;
-const CHAVE_DEMO = 'safemove:demo-user';
+const CHAVE_SESSAO = 'safemove:sessao';
 
-function traduzirErroFirebase(e: unknown): Error {
-  if (e instanceof FirebaseError) {
-    const mapa: Record<string, string> = {
-      'auth/invalid-email': 'E-mail inválido.',
-      'auth/missing-password': 'Digite sua senha.',
-      'auth/invalid-credential': 'E-mail ou senha incorretos.',
-      'auth/wrong-password': 'E-mail ou senha incorretos.',
-      'auth/user-not-found': 'Não encontramos uma conta com esse e-mail.',
-      'auth/email-already-in-use': 'Já existe uma conta com esse e-mail.',
-      'auth/weak-password': 'A senha precisa ter pelo menos 6 caracteres.',
-      'auth/too-many-requests': 'Muitas tentativas. Aguarde um pouco e tente de novo.',
-      'auth/network-request-failed': 'Sem conexão. Verifique sua internet.',
-    };
-    return new Error(mapa[e.code] ?? 'Não foi possível entrar agora. Tente de novo.');
-  }
-  return e instanceof Error ? e : new Error('Não foi possível entrar agora.');
+type Sessao = { token: string; usuario: UsuarioAuth };
+
+// A autenticação é feita pelo backend; aqui só guardamos o token que ele emite.
+// SecureStore (Keychain/Keystore) no celular; AsyncStorage na web, onde ele não existe.
+const armazenamento = {
+  ler: () => (Platform.OS === 'web' ? AsyncStorage.getItem(CHAVE_SESSAO) : SecureStore.getItemAsync(CHAVE_SESSAO)),
+  gravar: (v: string) =>
+    Platform.OS === 'web' ? AsyncStorage.setItem(CHAVE_SESSAO, v) : SecureStore.setItemAsync(CHAVE_SESSAO, v),
+  apagar: () =>
+    Platform.OS === 'web' ? AsyncStorage.removeItem(CHAVE_SESSAO) : SecureStore.deleteItemAsync(CHAVE_SESSAO),
+};
+
+function paraUsuarioAuth(u: Usuario): UsuarioAuth {
+  return { uid: u.uid, email: u.email, nome: u.nome };
 }
 
-function erroSemFirebase(): Error {
-  return new Error(
-    'Login indisponível: preencha as variáveis EXPO_PUBLIC_FIREBASE_* no arquivo .env.',
-  );
-}
+// Lido pelo client HTTP a cada chamada autenticada.
+let tokenAtual: string | null = null;
+setTokenProvider(async () => tokenAtual);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [usuario, setUsuario] = useState<UsuarioAuth | null>(null);
   const [carregando, setCarregando] = useState(true);
-  // Lido pelo token provider do modo demo; atualizado já no render para que
-  // queries disparadas pelos filhos no mesmo ciclo enxerguem o usuário.
-  const usuarioRef = useRef<UsuarioAuth | null>(null);
-  usuarioRef.current = usuario;
 
+  const limparSessao = useCallback(async () => {
+    tokenAtual = null;
+    setUsuario(null);
+    queryClient.removeQueries({ queryKey: ['usuarios'] });
+    await armazenamento.apagar().catch(() => undefined);
+  }, [queryClient]);
+
+  // Restaura a sessão salva e confirma com o backend que o token ainda vale.
   useEffect(() => {
-    if (auth) {
-      setTokenProvider(async () => (auth?.currentUser ? auth.currentUser.getIdToken() : null));
-      return onIdTokenChanged(auth, (u) => {
-        setUsuario(u ? { uid: u.uid, email: u.email, nome: u.displayName } : null);
-        setCarregando(false);
-      });
-    }
-    if (MODO_DEMO) {
-      // No modo demonstração o "token" é fixo, só para liberar as rotas 🔒 do mock.
-      setTokenProvider(async () => (usuarioRef.current ? 'demo-token' : null));
-      AsyncStorage.getItem(CHAVE_DEMO)
-        .then((json) => setUsuario(json ? (JSON.parse(json) as UsuarioAuth) : null))
-        .catch(() => setUsuario(null))
-        .finally(() => setCarregando(false));
-      return;
-    }
-    setCarregando(false);
-  }, []);
-
-  /** Chamado logo após o login, como pede o contrato. */
-  const carregarPerfil = useCallback(
-    async (uid: string) => {
+    let ativo = true;
+    (async () => {
       try {
-        await queryClient.fetchQuery({ queryKey: queryKeys.usuarioMe(uid), queryFn: buscarUsuarioMe });
+        const json = await armazenamento.ler();
+        if (!json) return;
+        const sessao = JSON.parse(json) as Sessao;
+        tokenAtual = sessao.token;
+        if (ativo) setUsuario(sessao.usuario);
+        try {
+          const me = await buscarUsuarioMe();
+          if (ativo) setUsuario(paraUsuarioAuth(me));
+        } catch (e) {
+          // Token expirado/inválido: encerra a sessão. Falha de rede mantém a sessão salva.
+          if (e instanceof ApiError && e.status === 401 && ativo) await limparSessao();
+        }
       } catch {
-        // O perfil é recarregado na aba Perfil; não bloqueia o login.
+        tokenAtual = null;
+      } finally {
+        if (ativo) setCarregando(false);
       }
-    },
-    [queryClient],
-  );
+    })();
+    return () => {
+      ativo = false;
+    };
+  }, [limparSessao]);
+
+  const iniciarSessao = useCallback(async ({ token, usuario: u }: AuthResponse) => {
+    const dados = paraUsuarioAuth(u);
+    tokenAtual = token;
+    await armazenamento.gravar(JSON.stringify({ token, usuario: dados } satisfies Sessao)).catch(() => undefined);
+    setUsuario(dados);
+  }, []);
 
   const entrar = useCallback(
     async (email: string, senha: string) => {
-      if (auth) {
-        try {
-          const cred = await signInWithEmailAndPassword(auth, email.trim(), senha);
-          await carregarPerfil(cred.user.uid);
-        } catch (e) {
-          throw traduzirErroFirebase(e);
-        }
-        return;
-      }
-      if (!MODO_DEMO) throw erroSemFirebase();
-      if (!email.includes('@') || senha.length < 6) throw new Error('E-mail ou senha incorretos.');
-      const demo: UsuarioAuth = { uid: 'demo', email: email.trim(), nome: null };
-      await AsyncStorage.setItem(CHAVE_DEMO, JSON.stringify(demo));
-      usuarioRef.current = demo;
-      setUsuario(demo);
+      const resp = await request<AuthResponse>('/auth/login', { method: 'POST', body: { email: email.trim(), senha } });
+      await iniciarSessao(resp);
     },
-    [carregarPerfil],
+    [iniciarSessao],
   );
 
   const criarConta = useCallback(
     async (nome: string, email: string, senha: string) => {
-      if (auth) {
-        try {
-          const cred = await createUserWithEmailAndPassword(auth, email.trim(), senha);
-          if (nome.trim()) await updateProfile(cred.user, { displayName: nome.trim() });
-          // Força um token novo com o nome atualizado antes de chamar a API.
-          await cred.user.getIdToken(true);
-          setUsuario({ uid: cred.user.uid, email: cred.user.email, nome: nome.trim() || null });
-          await carregarPerfil(cred.user.uid);
-        } catch (e) {
-          throw traduzirErroFirebase(e);
-        }
-        return;
-      }
-      if (!MODO_DEMO) throw erroSemFirebase();
-      const demo: UsuarioAuth = { uid: 'demo', email: email.trim(), nome: nome.trim() || null };
-      await AsyncStorage.setItem(CHAVE_DEMO, JSON.stringify(demo));
-      usuarioRef.current = demo;
-      setUsuario(demo);
+      const resp = await request<AuthResponse>('/auth/register', {
+        method: 'POST',
+        body: { nome: nome.trim(), email: email.trim(), senha },
+      });
+      await iniciarSessao(resp);
     },
-    [carregarPerfil],
+    [iniciarSessao],
   );
 
-  const sair = useCallback(async () => {
-    if (auth) await firebaseSignOut(auth);
-    else await AsyncStorage.removeItem(CHAVE_DEMO);
-    setUsuario(null);
-    queryClient.removeQueries({ queryKey: ['usuarios'] });
-  }, [queryClient]);
+  const sair = useCallback(() => limparSessao(), [limparSessao]);
 
   const value = useMemo(
     () => ({ usuario, carregando, entrar, criarConta, sair }),

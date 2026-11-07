@@ -109,6 +109,12 @@ export type Usuario = {
   criadoEm: string;
 };
 
+/** Resposta de POST /auth/login e /auth/register. */
+export type AuthResponse = {
+  token: string;
+  usuario: Usuario;
+};
+
 /** Corpo de erro (RFC 7807 / Spring ProblemDetail). */
 export type ProblemDetail = {
   status: number;

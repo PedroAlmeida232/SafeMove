@@ -2,7 +2,7 @@ import { useUsuarioMe } from '../api/hooks';
 import { useAuth } from '../auth/AuthProvider';
 import { iniciais, primeiroNome } from '../utils/format';
 
-/** Nome, e-mail e iniciais do usuário logado (de /usuarios/me, com fallback no Firebase). */
+/** Nome, e-mail e iniciais do usuário logado (de /usuarios/me, com fallback na sessão). */
 export function useIdentidade() {
   const { usuario } = useAuth();
   const me = useUsuarioMe(usuario?.uid);

@@ -157,6 +157,12 @@ export async function mockRequest<T>(method: Metodo, caminho: string, body: unkn
   if (method === 'GET' && path === '/incidentes') return responder(incidentesPerto(centroDe(params)));
   if (method === 'GET' && path === '/radares') return responder(radaresPerto(centroDe(params)));
   if (method === 'GET' && path === '/areas-risco') return responder(areasRisco);
+  if (method === 'POST' && (path === '/auth/login' || path === '/auth/register')) {
+    const { nome, email, senha } = body as { nome?: string; email: string; senha: string };
+    if (!email.includes('@') || senha.length < 6) throw new ApiError(401, 'E-mail ou senha incorretos.');
+    const usuario: Usuario = { ...usuarioMock, email, nome: nome || usuarioMock.nome };
+    return responder({ token: 'demo-token', usuario });
+  }
   if (method === 'GET' && path === '/usuarios/me') return responder(usuarioMock);
 
   if (method === 'POST' && path === '/rotas/avaliar') {
