@@ -8,7 +8,6 @@ import com.safemove.usuario.UsuarioRepository;
 import com.safemove.usuario.UsuarioResponse;
 import com.safemove.web.ApiException;
 import java.util.Locale;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -28,7 +27,7 @@ public class AuthService {
     public AuthResponse registrar(RegistroRequest req) {
         String email = normalizar(req.email());
         if (usuarios.existsByEmail(email)) {
-            throw new ApiException(HttpStatus.CONFLICT, "Já existe uma conta com esse e-mail.");
+            throw ApiException.conflito("Já existe uma conta com esse e-mail.");
         }
         Usuario u = usuarios.save(new Usuario(req.nome().trim(), email, encoder.encode(req.senha())));
         return new AuthResponse(jwt.gerar(u), UsuarioResponse.de(u));
@@ -37,7 +36,7 @@ public class AuthService {
     public AuthResponse entrar(LoginRequest req) {
         Usuario u = usuarios.findByEmail(normalizar(req.email()))
                 .filter(x -> encoder.matches(req.senha(), x.getSenhaHash()))
-                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "E-mail ou senha incorretos."));
+                .orElseThrow(() -> ApiException.naoAutenticado("E-mail ou senha incorretos."));
         return new AuthResponse(jwt.gerar(u), UsuarioResponse.de(u));
     }
 

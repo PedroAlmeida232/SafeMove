@@ -1,6 +1,7 @@
 package com.safemove.config;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import com.safemove.web.JsonErrorHandlers;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import javax.crypto.SecretKey;
@@ -29,7 +30,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
     @Bean
-    SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain filterChain(HttpSecurity http, JsonErrorHandlers erros) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
@@ -39,7 +40,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/ocorrencias", "/incidentes", "/radares", "/areas-risco").permitAll()
                         .requestMatchers("/error", "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated())
-                .oauth2ResourceServer(o -> o.jwt(Customizer.withDefaults()));
+                .exceptionHandling(e -> e.authenticationEntryPoint(erros).accessDeniedHandler(erros))
+                .oauth2ResourceServer(o -> o.jwt(Customizer.withDefaults()).authenticationEntryPoint(erros));
         return http.build();
     }
 
