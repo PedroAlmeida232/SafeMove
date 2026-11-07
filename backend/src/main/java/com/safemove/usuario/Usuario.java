@@ -12,7 +12,7 @@ import java.util.UUID;
 public class Usuario {
 
     @Id
-    @Column(length = 36)
+    @Column(name = "id_usuario", length = 36)
     private String uid = UUID.randomUUID().toString();
 
     @Column(nullable = false, length = 120)
