@@ -17,6 +17,14 @@ export function setTokenProvider(fn: TokenProvider): void {
   tokenProvider = fn;
 }
 
+type RefreshHandler = () => Promise<boolean>;
+let refreshHandler: RefreshHandler | null = null;
+
+/** O ID token dura 1h: ao receber 401 numa rota 🔒, o client pede ao AuthProvider para renovar e repete a chamada. */
+export function setRefreshHandler(fn: RefreshHandler | null): void {
+  refreshHandler = fn;
+}
+
 type Opcoes = {
   method?: Metodo;
   body?: unknown;
@@ -46,7 +54,7 @@ function mensagemPadrao(status: number): string {
   return 'Não foi possível concluir a ação.';
 }
 
-export async function request<T>(path: string, opcoes: Opcoes = {}): Promise<T> {
+export async function request<T>(path: string, opcoes: Opcoes = {}, jaRenovou = false): Promise<T> {
   const { method = 'GET', body, auth = false, query } = opcoes;
   const caminho = `${path}${montarQuery(query)}`;
 
@@ -89,6 +97,10 @@ export async function request<T>(path: string, opcoes: Opcoes = {}): Promise<T> 
     } catch {
       json = null;
     }
+  }
+
+  if (resposta.status === 401 && auth && !jaRenovou && refreshHandler && (await refreshHandler())) {
+    return request<T>(path, opcoes, true);
   }
 
   if (!resposta.ok) {
