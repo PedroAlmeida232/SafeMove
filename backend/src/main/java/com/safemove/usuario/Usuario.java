@@ -5,15 +5,15 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
-import java.util.UUID;
 
+/** Perfil do usuário. A senha fica só no Firebase; aqui o uid é o do Firebase. */
 @Entity
-@Table(name = "usuarios")
+@Table(name = "perfis_usuario")
 public class Usuario {
 
     @Id
-    @Column(name = "id_usuario", length = 36)
-    private String uid = UUID.randomUUID().toString();
+    @Column(name = "id_usuario", length = 128)
+    private String uid;
 
     @Column(nullable = false, length = 120)
     private String nome;
@@ -21,23 +21,19 @@ public class Usuario {
     @Column(nullable = false, unique = true, length = 254)
     private String email;
 
-    @Column(name = "senha_hash", nullable = false)
-    private String senhaHash;
-
     @Column(name = "criado_em", nullable = false)
     private Instant criadoEm = Instant.now();
 
     protected Usuario() {}
 
-    public Usuario(String nome, String email, String senhaHash) {
+    public Usuario(String uid, String nome, String email) {
+        this.uid = uid;
         this.nome = nome;
         this.email = email;
-        this.senhaHash = senhaHash;
     }
 
     public String getUid() { return uid; }
     public String getNome() { return nome; }
     public String getEmail() { return email; }
-    public String getSenhaHash() { return senhaHash; }
     public Instant getCriadoEm() { return criadoEm; }
 }

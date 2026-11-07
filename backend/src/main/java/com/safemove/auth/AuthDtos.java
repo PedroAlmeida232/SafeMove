@@ -18,5 +18,8 @@ public final class AuthDtos {
             @NotBlank(message = "Informe seu e-mail.") String email,
             @NotBlank(message = "Digite sua senha.") String senha) {}
 
-    public record AuthResponse(String token, UsuarioResponse usuario) {}
+    public record RefreshRequest(@NotBlank(message = "Sessão inválida.") String refreshToken) {}
+
+    /** token = ID token do Firebase (1h), enviado como Bearer; refreshToken renova em /auth/refresh. */
+    public record AuthResponse(String token, String refreshToken, UsuarioResponse usuario) {}
 }
