@@ -1,7 +1,6 @@
 package com.safemove.usuario;
 
 import com.safemove.web.ApiException;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +21,6 @@ public class UsuarioController {
     public UsuarioResponse me(@AuthenticationPrincipal Jwt jwt) {
         return usuarios.findById(jwt.getSubject())
                 .map(UsuarioResponse::de)
-                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Sua sessão expirou. Entre novamente."));
+                .orElseThrow(() -> ApiException.naoAutenticado("Sua sessão expirou. Entre novamente."));
     }
 }
