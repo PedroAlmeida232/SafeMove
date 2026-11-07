@@ -1,10 +1,11 @@
 package com.safemove.usuario;
 
+import com.safemove.config.Fuso;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import java.time.Instant;
+import java.time.OffsetDateTime;
 
 /** Perfil do usuário. A senha fica só no Firebase; aqui o uid é o do Firebase. */
 @Entity
@@ -22,7 +23,7 @@ public class Usuario {
     private String email;
 
     @Column(name = "criado_em", nullable = false)
-    private Instant criadoEm = Instant.now();
+    private OffsetDateTime criadoEm = Fuso.agora();
 
     protected Usuario() {}
 
@@ -35,5 +36,5 @@ public class Usuario {
     public String getUid() { return uid; }
     public String getNome() { return nome; }
     public String getEmail() { return email; }
-    public Instant getCriadoEm() { return criadoEm; }
+    public OffsetDateTime getCriadoEm() { return criadoEm; }
 }

@@ -2,6 +2,7 @@ package com.safemove.auth;
 
 import com.safemove.auth.AuthDtos.AuthResponse;
 import com.safemove.auth.AuthDtos.LoginRequest;
+import com.safemove.auth.AuthDtos.RecuperarSenhaRequest;
 import com.safemove.auth.AuthDtos.RefreshRequest;
 import com.safemove.auth.AuthDtos.RegistroRequest;
 import com.safemove.auth.FirebaseAuthClient.Sessao;
@@ -51,6 +52,10 @@ public class AuthService {
         Usuario u = usuarios.findById(nova.userId())
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Sua sessão expirou. Entre novamente."));
         return new AuthResponse(nova.idToken(), nova.refreshToken(), UsuarioResponse.de(u));
+    }
+
+    public void recuperarSenha(RecuperarSenhaRequest req) {
+        firebase.recuperarSenha(normalizar(req.email()));
     }
 
     private static AuthResponse resposta(Sessao s, Usuario u) {

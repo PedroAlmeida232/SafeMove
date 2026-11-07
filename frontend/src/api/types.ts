@@ -112,6 +112,7 @@ export type Usuario = {
 /** Resposta de POST /auth/login e /auth/register. */
 export type AuthResponse = {
   token: string;
+  refreshToken: string;
   usuario: Usuario;
 };
 
