@@ -63,6 +63,26 @@ class FirebaseAuthClientTest {
         assertEquals("u1", r.userId());
     }
 
+    @Test void recuperarSenhaPedeEmailDeRedefinicao() {
+        server.expect(requestTo(BASE + ":sendOobCode?key=CHAVE"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(content().json("{\"requestType\":\"PASSWORD_RESET\",\"email\":\"a@x.com\"}"))
+                .andRespond(withSuccess("{\"email\":\"a@x.com\"}", MediaType.APPLICATION_JSON));
+        client.recuperarSenha("a@x.com");
+        server.verify();
+    }
+
+    @Test void recuperarSenhaIgnoraEmailSemConta() {
+        erro(BASE + ":sendOobCode?key=CHAVE", 400, "EMAIL_NOT_FOUND");
+        client.recuperarSenha("x@x.com");
+    }
+
+    @Test void recuperarSenhaPropagaErrosDoServico() {
+        erro(BASE + ":sendOobCode?key=CHAVE", 400, "TOO_MANY_ATTEMPTS_TRY_LATER");
+        ApiException e = assertThrows(ApiException.class, () -> client.recuperarSenha("a@x.com"));
+        assertEquals(HttpStatus.TOO_MANY_REQUESTS, e.getStatus());
+    }
+
     private void esperaErro(HttpStatus esperado, String msg) {
         ApiException e = assertThrows(ApiException.class, () -> client.entrar("a@x.com", "123456"));
         assertEquals(esperado, e.getStatus());

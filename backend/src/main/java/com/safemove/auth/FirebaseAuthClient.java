@@ -37,6 +37,7 @@ public class FirebaseAuthClient {
                      @JsonProperty("user_id") String userId) {}
 
     record Credenciais(String email, String password, boolean returnSecureToken) {}
+    record PedidoOob(String requestType, String email) {}
     record NovoNome(String idToken, String displayName, boolean returnSecureToken) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -80,6 +81,23 @@ public class FirebaseAuthClient {
         return chamar(() -> rest.post().uri(TOKEN + "?key={k}", apiKey)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED).body(form)
                 .retrieve().body(Renovacao.class));
+    }
+
+    /**
+     * Pede ao Firebase que envie o e-mail de redefinição de senha. E-mail sem conta é tratado
+     * como sucesso, para a resposta não revelar quem tem cadastro.
+     */
+    public void recuperarSenha(String email) {
+        exigirConfigurado();
+        try {
+            chamar(() -> rest.post().uri(IDENTITY + ":sendOobCode?key={k}", apiKey)
+                    .contentType(MediaType.APPLICATION_JSON).body(new PedidoOob("PASSWORD_RESET", email))
+                    .retrieve().toBodilessEntity());
+        } catch (ApiException e) {
+            if (e.getStatus() != HttpStatus.UNAUTHORIZED) {
+                throw e;
+            }
+        }
     }
 
     private Sessao identity(String operacao, Object corpo) {

@@ -54,6 +54,10 @@ export default function LoginScreen() {
 
   const enviar = async () => {
     setErro(null);
+    if (criando && !nome.trim()) {
+      setErro('Informe seu nome.');
+      return;
+    }
     if (!email.trim() || !senha) {
       setErro('Preencha e-mail e senha.');
       return;

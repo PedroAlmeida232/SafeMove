@@ -2,6 +2,7 @@ package com.safemove.auth;
 
 import com.safemove.auth.AuthDtos.AuthResponse;
 import com.safemove.auth.AuthDtos.LoginRequest;
+import com.safemove.auth.AuthDtos.RecuperarSenhaRequest;
 import com.safemove.auth.AuthDtos.RefreshRequest;
 import com.safemove.auth.AuthDtos.RegistroRequest;
 import jakarta.validation.Valid;
@@ -36,5 +37,12 @@ public class AuthController {
     @PostMapping("/refresh")
     public AuthResponse renovar(@Valid @RequestBody RefreshRequest req) {
         return auth.renovar(req);
+    }
+
+    /** Sempre 204, exista ou não conta com o e-mail. */
+    @PostMapping("/recuperar-senha")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void recuperarSenha(@Valid @RequestBody RecuperarSenhaRequest req) {
+        auth.recuperarSenha(req);
     }
 }

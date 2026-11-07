@@ -4,7 +4,7 @@ import * as SecureStore from 'expo-secure-store';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Platform } from 'react-native';
 
-import { ApiError, request, setTokenProvider } from '../api/client';
+import { ApiError, request, setRefreshHandler, setTokenProvider } from '../api/client';
 import { buscarUsuarioMe } from '../api/hooks';
 import type { AuthResponse, Usuario } from '../api/types';
 
@@ -26,9 +26,9 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 const CHAVE_SESSAO = 'safemove:sessao';
 
-type Sessao = { token: string; usuario: UsuarioAuth };
+type Sessao = { token: string; refreshToken: string; usuario: UsuarioAuth };
 
-// A autenticação é feita pelo backend; aqui só guardamos o token que ele emite.
+// A autenticação é feita pelo backend (que usa o Firebase); aqui só guardamos os tokens que ele devolve.
 // SecureStore (Keychain/Keystore) no celular; AsyncStorage na web, onde ele não existe.
 const armazenamento = {
   ler: () => (Platform.OS === 'web' ? AsyncStorage.getItem(CHAVE_SESSAO) : SecureStore.getItemAsync(CHAVE_SESSAO)),
@@ -42,9 +42,36 @@ function paraUsuarioAuth(u: Usuario): UsuarioAuth {
   return { uid: u.uid, email: u.email, nome: u.nome };
 }
 
-// Lido pelo client HTTP a cada chamada autenticada.
+// Lidos pelo client HTTP a cada chamada autenticada.
 let tokenAtual: string | null = null;
+let refreshAtual: string | null = null;
+let usuarioAtual: UsuarioAuth | null = null;
 setTokenProvider(async () => tokenAtual);
+
+async function guardarSessao(token: string, refreshToken: string, usuario: UsuarioAuth) {
+  tokenAtual = token;
+  refreshAtual = refreshToken;
+  usuarioAtual = usuario;
+  const sessao: Sessao = { token, refreshToken, usuario };
+  await armazenamento.gravar(JSON.stringify(sessao)).catch(() => undefined);
+}
+
+// Várias chamadas podem receber 401 ao mesmo tempo: todas esperam a mesma renovação
+// (o refresh token do Firebase rotaciona, então não podemos renovar duas vezes em paralelo).
+let renovacao: Promise<boolean> | null = null;
+setRefreshHandler(() => {
+  if (!refreshAtual || !usuarioAtual) return Promise.resolve(false);
+  renovacao ??= request<AuthResponse>('/auth/refresh', { method: 'POST', body: { refreshToken: refreshAtual } })
+    .then(async (r) => {
+      await guardarSessao(r.token, r.refreshToken, paraUsuarioAuth(r.usuario));
+      return true;
+    })
+    .catch(() => false)
+    .finally(() => {
+      renovacao = null;
+    });
+  return renovacao;
+});
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
@@ -53,6 +80,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const limparSessao = useCallback(async () => {
     tokenAtual = null;
+    refreshAtual = null;
+    usuarioAtual = null;
     setUsuario(null);
     queryClient.removeQueries({ queryKey: ['usuarios'] });
     await armazenamento.apagar().catch(() => undefined);
@@ -67,6 +96,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!json) return;
         const sessao = JSON.parse(json) as Sessao;
         tokenAtual = sessao.token;
+        refreshAtual = sessao.refreshToken;
+        usuarioAtual = sessao.usuario;
         if (ativo) setUsuario(sessao.usuario);
         try {
           const me = await buscarUsuarioMe();
@@ -86,10 +117,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [limparSessao]);
 
-  const iniciarSessao = useCallback(async ({ token, usuario: u }: AuthResponse) => {
+  const iniciarSessao = useCallback(async ({ token, refreshToken, usuario: u }: AuthResponse) => {
     const dados = paraUsuarioAuth(u);
-    tokenAtual = token;
-    await armazenamento.gravar(JSON.stringify({ token, usuario: dados } satisfies Sessao)).catch(() => undefined);
+    await guardarSessao(token, refreshToken, dados);
     setUsuario(dados);
   }, []);
 

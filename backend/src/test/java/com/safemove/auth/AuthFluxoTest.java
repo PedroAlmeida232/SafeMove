@@ -68,6 +68,15 @@ class AuthFluxoTest {
         org.mockito.Mockito.verifyNoInteractions(firebase);
     }
 
+    @Test void criadoEmSaiNoFusoDeSaoPaulo() throws Exception {
+        when(firebase.entrar("fuso@x.com", "123456")).thenReturn(new Sessao("ID", "RT", "uid-fuso", "fuso@x.com", "Fuso"));
+
+        mvc.perform(post("/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"fuso@x.com\",\"senha\":\"123456\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.usuario.criadoEm").value(org.hamcrest.Matchers.endsWith("-03:00")));
+    }
+
     @Test void loginDeQuemSoExisteNoFirebaseCriaOPerfil() throws Exception {
         when(firebase.entrar("bia@x.com", "123456")).thenReturn(new Sessao("ID", "RT", "uid-bia", "bia@x.com", null));
 
@@ -97,6 +106,19 @@ class AuthFluxoTest {
                 .andExpect(jsonPath("$.token").value("NOVO"))
                 .andExpect(jsonPath("$.refreshToken").value("RT2"))
                 .andExpect(jsonPath("$.usuario.nome").value("Caio"));
+    }
+
+    @Test void recuperarSenhaDevolve204() throws Exception {
+        mvc.perform(post("/auth/recuperar-senha").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"Ana@X.com\"}"))
+                .andExpect(status().isNoContent());
+        org.mockito.Mockito.verify(firebase).recuperarSenha("ana@x.com");
+    }
+
+    @Test void recuperarSenhaComEmailInvalidoDa400() throws Exception {
+        mvc.perform(post("/auth/recuperar-senha").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"abc\"}"))
+                .andExpect(status().isBadRequest());
     }
 
     @Test void meCriaPerfilAPartirDasClaimsDoToken() throws Exception {
