@@ -46,14 +46,19 @@ public class SecurityConfig {
      */
     @Bean
     JwtDecoder jwtDecoder(@Value("${safemove.firebase.project-id}") String projectId) {
-        String issuer = "https://securetoken.google.com/" + projectId;
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(
                 "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com").build();
+        decoder.setJwtValidator(validadorFirebase(projectId));
+        return decoder;
+    }
+
+    /** Emissor, expiração e audiência de um ID token do Firebase para o projeto informado. */
+    static OAuth2TokenValidator<Jwt> validadorFirebase(String projectId) {
+        String issuer = "https://securetoken.google.com/" + projectId;
         OAuth2TokenValidator<Jwt> audiencia = jwt -> jwt.getAudience().contains(projectId)
                 ? OAuth2TokenValidatorResult.success()
                 : OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token", "Audiência inválida.", null));
-        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(JwtValidators.createDefaultWithIssuer(issuer), audiencia));
-        return decoder;
+        return new DelegatingOAuth2TokenValidator<>(JwtValidators.createDefaultWithIssuer(issuer), audiencia);
     }
 
     @Bean
