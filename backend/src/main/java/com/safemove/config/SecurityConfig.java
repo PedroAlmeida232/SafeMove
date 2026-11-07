@@ -1,5 +1,6 @@
 package com.safemove.config;
 
+import com.safemove.web.JsonErrorHandlers;
 import java.util.Arrays;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
