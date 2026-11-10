@@ -1,4 +1,3 @@
-import * as Location from 'expo-location';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowUpDown, ChevronLeft, CircleAlert, ShieldCheck, TriangleAlert, type LucideIcon } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
@@ -7,18 +6,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ApiError, mensagemDeErro } from '../../src/api/client';
 import { useAvaliarRota } from '../../src/api/hooks';
+import { buscarLugares, type Lugar } from '../../src/api/lugares';
 import type { Classificacao, ModoTransporte, Ponto, RotaAvaliada } from '../../src/api/types';
 import { PrimaryButton } from '../../src/components/Buttons';
 import { GroupedList } from '../../src/components/GroupedList';
 import { Touchable } from '../../src/components/Pressable';
 import { SegmentedControl } from '../../src/components/SegmentedControl';
 import { ErrorState, SkeletonList } from '../../src/components/StateViews';
+import { MENSAGEM_FORA_DE_SP, SugestoesEndereco } from '../../src/components/SugestoesEndereco';
 import { Text } from '../../src/components/Text';
 import { useLocation } from '../../src/state/LocationProvider';
 import { useRotas, type Planejamento } from '../../src/state/RotaStore';
 import { colors, hairline, spacing, type as typography } from '../../src/theme/tokens';
 import { metrosParaKm, segundosParaTexto } from '../../src/utils/format';
-import { dentroDeSaoPaulo } from '../../src/utils/geo';
 import { corTextoClassificacao } from '../../src/utils/incidente';
 
 const MINHA_LOCALIZACAO = 'Minha localização';
@@ -30,6 +30,7 @@ const MODOS: { value: ModoTransporte; label: string }[] = [
 ];
 
 type Campo = { texto: string; ponto: Ponto | null };
+type NomeCampo = 'origem' | 'destino';
 
 const ICONE_STATUS: Record<Classificacao, LucideIcon> = {
   SEGURA: ShieldCheck,
@@ -50,9 +51,16 @@ async function resolverPonto(campo: Campo, posicao: Ponto | null, nome: string):
     if (!posicao) throw new Error('Não conseguimos sua localização. Digite um endereço de origem.');
     return posicao;
   }
-  const resultados = await Location.geocodeAsync(`${texto}, São Paulo, SP`).catch(() => []);
-  const achado = resultados.find((r) => dentroDeSaoPaulo(r));
-  if (!achado) throw new Error(`Não encontramos o endereço de ${nome} em São Paulo.`);
+  // Texto digitado sem escolher uma sugestão: vale o primeiro endereço encontrado na cidade.
+  const { lugares, foraDeSaoPaulo } = await buscarLugares(texto);
+  const achado = lugares[0];
+  if (!achado) {
+    throw new Error(
+      foraDeSaoPaulo
+        ? `O endereço de ${nome} fica fora de São Paulo. ${MENSAGEM_FORA_DE_SP}`
+        : `Não encontramos o endereço de ${nome} em São Paulo.`,
+    );
+  }
   return { latitude: achado.latitude, longitude: achado.longitude };
 }
 
@@ -109,6 +117,8 @@ export default function PlanejarRotaScreen() {
   const [modo, setModo] = useState<ModoTransporte>('CARRO');
   const [erroLocal, setErroLocal] = useState<string | null>(null);
   const [resolvendo, setResolvendo] = useState(false);
+  /** Campo em edição: as sugestões aparecem para ele até um endereço ser escolhido. */
+  const [editando, setEditando] = useState<NomeCampo | null>(null);
 
   // Destino vindo da busca no mapa ("Planejar rota até aqui").
   useEffect(() => {
@@ -119,6 +129,18 @@ export default function PlanejarRotaScreen() {
     }
   }, [params.destLat, params.destLng, params.destLabel]);
 
+  const campoEditado = editando === 'origem' ? origem : editando === 'destino' ? destino : null;
+  const sugerir = campoEditado !== null && campoEditado.ponto === null && campoEditado.texto !== MINHA_LOCALIZACAO;
+
+  const escolherLugar = (lugar: Lugar) => {
+    const campo: Campo = { texto: lugar.titulo, ponto: { latitude: lugar.latitude, longitude: lugar.longitude } };
+    if (editando === 'origem') setOrigem(campo);
+    else setDestino(campo);
+    setEditando(null);
+    setErroLocal(null);
+    Keyboard.dismiss();
+  };
+
   const inverter = () => {
     setOrigem(destino.texto ? destino : { texto: '', ponto: null });
     setDestino(origem);
@@ -126,6 +148,7 @@ export default function PlanejarRotaScreen() {
 
   const executar = async () => {
     Keyboard.dismiss();
+    setEditando(null);
     setErroLocal(null);
     avaliar.reset();
     if (!destino.texto.trim()) {
@@ -206,7 +229,10 @@ export default function PlanejarRotaScreen() {
               <TextInput
                 value={origem.texto}
                 onChangeText={(t) => setOrigem({ texto: t, ponto: null })}
-                onFocus={() => origem.texto === MINHA_LOCALIZACAO && setOrigem({ texto: '', ponto: null })}
+                onFocus={() => {
+                  setEditando('origem');
+                  if (origem.texto === MINHA_LOCALIZACAO) setOrigem({ texto: '', ponto: null });
+                }}
                 onBlur={() => !origem.texto.trim() && setOrigem({ texto: MINHA_LOCALIZACAO, ponto: null })}
                 placeholder="Origem"
                 placeholderTextColor={colors.tertiary}
@@ -220,6 +246,7 @@ export default function PlanejarRotaScreen() {
               <TextInput
                 value={destino.texto}
                 onChangeText={(t) => setDestino({ texto: t, ponto: null })}
+                onFocus={() => setEditando('destino')}
                 placeholder="Destino"
                 placeholderTextColor={colors.tertiary}
                 style={styles.input}
@@ -238,6 +265,8 @@ export default function PlanejarRotaScreen() {
             <ArrowUpDown size={18} color={colors.accent} strokeWidth={2} />
           </Touchable>
         </View>
+
+        <SugestoesEndereco texto={campoEditado?.texto ?? ''} ativo={sugerir} onEscolher={escolherLugar} />
 
         <View style={styles.secao}>
           <SegmentedControl options={MODOS} value={modo} onChange={setModo} accessibilityLabel="Meio de transporte" />
