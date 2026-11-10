@@ -1,11 +1,11 @@
 import { MapPin } from 'lucide-react-native';
 import { useState } from 'react';
 import { Modal, StyleSheet, View } from 'react-native';
-import MapView, { PROVIDER_DEFAULT } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, shadows } from '../../theme/tokens';
 import { dentroDeSaoPaulo, type Coordenada } from '../../utils/geo';
+import { BaseMap } from './BaseMap';
 import { ModalNavBar } from '../ModalNavBar';
 import { Text } from '../Text';
 
@@ -40,9 +40,8 @@ export function AjustarLocal({ visible, inicial, onCancel, onConfirm }: Props) {
           rightDisabled={foraDeSP}
         />
         <View style={styles.flex}>
-          <MapView
+          <BaseMap
             style={StyleSheet.absoluteFill}
-            provider={PROVIDER_DEFAULT}
             initialRegion={{ ...inicial, latitudeDelta: 0.006, longitudeDelta: 0.006 }}
             onRegionChangeComplete={(r) => setCentro({ latitude: r.latitude, longitude: r.longitude })}
             showsUserLocation

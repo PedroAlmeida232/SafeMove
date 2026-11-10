@@ -1,8 +1,10 @@
 import { forwardRef, useCallback, useImperativeHandle, useRef, type ReactNode } from 'react';
 import { StyleSheet } from 'react-native';
-import MapView, { PROVIDER_DEFAULT, type EdgePadding } from 'react-native-maps';
+import type MapView from 'react-native-maps';
+import type { EdgePadding } from 'react-native-maps';
 
 import { colors } from '../../theme/tokens';
+import { BaseMap } from './BaseMap';
 import type { Coordenada } from '../../utils/geo';
 
 export type RouteMapHandle = {
@@ -38,10 +40,9 @@ export const RouteMap = forwardRef<RouteMapHandle, Props>(function RouteMap({ po
   const inicial = pontos[0];
 
   return (
-    <MapView
+    <BaseMap
       ref={mapRef}
       style={[StyleSheet.absoluteFill, styles.map]}
-      provider={PROVIDER_DEFAULT}
       initialRegion={
         inicial ? { ...inicial, latitudeDelta: 0.05, longitudeDelta: 0.05 } : undefined
       }
@@ -53,7 +54,7 @@ export const RouteMap = forwardRef<RouteMapHandle, Props>(function RouteMap({ po
       pitchEnabled={false}
     >
       {children}
-    </MapView>
+    </BaseMap>
   );
 });
 
