@@ -4,6 +4,7 @@
  */
 import { ApiError, type Metodo } from '../api/errors';
 import type {
+  AvaliacaoArea,
   AvaliarRotaBody,
   Incidente,
   NovaOcorrencia,
@@ -70,6 +71,24 @@ function radaresPerto(centro: Ponto): Radar[] {
     latitude: centro.latitude + r.dLat,
     longitude: centro.longitude + r.dLng,
   }));
+}
+
+/** Distrito mais próximo (até 3 km), como faz GET /areas-risco/avaliar. */
+function avaliarAreaMock(ponto: Ponto): AvaliacaoArea {
+  const perto = areasRisco
+    .map((area) => ({ area, distanciaMetros: distanciaMetros(ponto, area) }))
+    .filter((p) => p.distanciaMetros <= 3000)
+    .sort((a, b) => a.distanciaMetros - b.distanciaMetros)[0];
+  if (!perto) throw new ApiError(404, 'Não há dados de risco para este local.');
+  const { area } = perto;
+  const titulo =
+    area.nivel >= 4 ? 'Você está em uma área de risco' : area.nivel === 3 ? 'Atenção nesta região' : 'Região segura';
+  const assaltos =
+    area.assaltosReportados === 0
+      ? 'Nenhum assalto reportado nos últimos 30 dias.'
+      : `${area.assaltosReportados} ${area.assaltosReportados === 1 ? 'assalto reportado' : 'assaltos reportados'} no app nos últimos 30 dias.`;
+  const dica = area.segura ? '' : ' Evite exibir o celular e prefira vias movimentadas e iluminadas.';
+  return { ...perto, titulo, mensagem: `${area.distrito}: ${assaltos}${dica}` };
 }
 
 /** Gera uma polilinha curva entre origem e destino. */
@@ -157,6 +176,7 @@ export async function mockRequest<T>(method: Metodo, caminho: string, body: unkn
   if (method === 'GET' && path === '/incidentes') return responder(incidentesPerto(centroDe(params)));
   if (method === 'GET' && path === '/radares') return responder(radaresPerto(centroDe(params)));
   if (method === 'GET' && path === '/areas-risco') return responder(areasRisco);
+  if (method === 'GET' && path === '/areas-risco/avaliar') return responder(avaliarAreaMock(centroDe(params)));
   if (method === 'POST' && (path === '/auth/login' || path === '/auth/register')) {
     const { nome, email, senha } = body as { nome?: string; email: string; senha: string };
     if (path === '/auth/register' && !nome?.trim()) throw new ApiError(400, 'Informe seu nome.');

@@ -44,11 +44,11 @@ export const radaresBase: (Desloc & { id: number; velocidadeMax: number | null }
 
 /** Áreas de risco com coordenadas reais dos distritos de São Paulo. */
 export const areasRisco: AreaRisco[] = [
-  { distrito: 'Sé', latitude: -23.5505, longitude: -46.6333, nivel: 5 },
-  { distrito: 'República', latitude: -23.5431, longitude: -46.6424, nivel: 4 },
-  { distrito: 'Brás', latitude: -23.5435, longitude: -46.6158, nivel: 4 },
-  { distrito: 'Bela Vista', latitude: -23.5614, longitude: -46.6457, nivel: 3 },
-  { distrito: 'Santa Cecília', latitude: -23.5373, longitude: -46.6536, nivel: 3 },
-  { distrito: 'Pinheiros', latitude: -23.5672, longitude: -46.6917, nivel: 2 },
-  { distrito: 'Moema', latitude: -23.6009, longitude: -46.6624, nivel: 1 },
+  { distrito: 'Sé', latitude: -23.5505, longitude: -46.6333, nivel: 5, segura: false, assaltosReportados: 12, roubosOficiais: null, furtosOficiais: null, mesOficial: null },
+  { distrito: 'República', latitude: -23.5431, longitude: -46.6424, nivel: 4, segura: false, assaltosReportados: 7, roubosOficiais: null, furtosOficiais: null, mesOficial: null },
+  { distrito: 'Brás', latitude: -23.5435, longitude: -46.6158, nivel: 4, segura: false, assaltosReportados: 7, roubosOficiais: null, furtosOficiais: null, mesOficial: null },
+  { distrito: 'Bela Vista', latitude: -23.5614, longitude: -46.6457, nivel: 3, segura: false, assaltosReportados: 4, roubosOficiais: null, furtosOficiais: null, mesOficial: null },
+  { distrito: 'Santa Cecília', latitude: -23.5373, longitude: -46.6536, nivel: 3, segura: false, assaltosReportados: 4, roubosOficiais: null, furtosOficiais: null, mesOficial: null },
+  { distrito: 'Pinheiros', latitude: -23.5672, longitude: -46.6917, nivel: 2, segura: true, assaltosReportados: 1, roubosOficiais: null, furtosOficiais: null, mesOficial: null },
+  { distrito: 'Moema', latitude: -23.6009, longitude: -46.6624, nivel: 1, segura: true, assaltosReportados: 0, roubosOficiais: null, furtosOficiais: null, mesOficial: null },
 ];

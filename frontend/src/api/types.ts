@@ -66,6 +66,23 @@ export type AreaRisco = {
   longitude: number;
   /** 1 a 5 */
   nivel: number;
+  /** true até o nível 2. */
+  segura: boolean;
+  /** Assaltos reportados no app nos últimos 30 dias. */
+  assaltosReportados: number;
+  /** SSP-SP, mês mais recente disponível; null se não houver estatística oficial. */
+  roubosOficiais: number | null;
+  furtosOficiais: number | null;
+  /** "AAAA-MM" */
+  mesOficial: string | null;
+};
+
+/** Resposta de GET /areas-risco/avaliar (404 fora de São Paulo). */
+export type AvaliacaoArea = {
+  area: AreaRisco;
+  distanciaMetros: number;
+  titulo: string;
+  mensagem: string;
 };
 
 export type ModoTransporte = 'CARRO' | 'A_PE' | 'BICICLETA';

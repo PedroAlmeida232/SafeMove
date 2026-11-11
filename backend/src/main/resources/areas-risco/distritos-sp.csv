@@ -1,0 +1,99 @@
+# Distritos do município de São Paulo com o centroide APROXIMADO (graus decimais, WGS84).
+# Cada ocorrência é atribuída ao distrito de centroide mais próximo (até 3 km).
+# Os nomes devem bater com a coluna "distrito" do CSV de estatísticas da SSP (acentos e caixa são ignorados).
+distrito;lat;lng
+Sé;-23.5505;-46.6333
+República;-23.5431;-46.6424
+Brás;-23.5435;-46.6158
+Bela Vista;-23.5614;-46.6457
+Santa Cecília;-23.5373;-46.6536
+Consolação;-23.5530;-46.6600
+Liberdade;-23.5636;-46.6340
+Cambuci;-23.5700;-46.6200
+Bom Retiro;-23.5270;-46.6390
+Pari;-23.5260;-46.6150
+Mooca;-23.5580;-46.5950
+Belém;-23.5390;-46.5930
+Tatuapé;-23.5400;-46.5760
+Água Rasa;-23.5560;-46.5740
+Carrão;-23.5510;-46.5400
+Vila Formosa;-23.5670;-46.5450
+Aricanduva;-23.5660;-46.5100
+Vila Matilde;-23.5340;-46.5240
+Penha;-23.5230;-46.5430
+Cangaíba;-23.5050;-46.5220
+Ponte Rasa;-23.5120;-46.5020
+Artur Alvim;-23.5400;-46.4830
+Cidade Líder;-23.5600;-46.4950
+Itaquera;-23.5360;-46.4560
+José Bonifácio;-23.5550;-46.4370
+Parque do Carmo;-23.5750;-46.4700
+Guaianases;-23.5420;-46.4150
+Lajeado;-23.5350;-46.3900
+Cidade Tiradentes;-23.5820;-46.4090
+Iguatemi;-23.5950;-46.4300
+São Rafael;-23.6200;-46.4650
+São Mateus;-23.6050;-46.4750
+Sapopemba;-23.6040;-46.5140
+São Lucas;-23.5970;-46.5450
+Vila Prudente;-23.5830;-46.5800
+Ermelino Matarazzo;-23.5050;-46.4790
+Vila Jacuí;-23.4970;-46.4610
+São Miguel;-23.4980;-46.4440
+Jardim Helena;-23.4830;-46.4200
+Vila Curuçá;-23.5060;-46.4200
+Itaim Paulista;-23.4990;-46.3990
+Vila Maria;-23.5120;-46.5770
+Vila Guilherme;-23.5080;-46.6040
+Vila Medeiros;-23.4900;-46.5850
+Jaçanã;-23.4620;-46.5800
+Tremembé;-23.4520;-46.6110
+Tucuruvi;-23.4800;-46.6040
+Mandaqui;-23.4780;-46.6350
+Santana;-23.5000;-46.6250
+Casa Verde;-23.5060;-46.6580
+Limão;-23.5050;-46.6750
+Cachoeirinha;-23.4680;-46.6600
+Brasilândia;-23.4630;-46.6870
+Freguesia do Ó;-23.4940;-46.6980
+São Domingos;-23.4930;-46.7450
+Pirituba;-23.4870;-46.7250
+Jaraguá;-23.4550;-46.7450
+Perus;-23.4050;-46.7520
+Anhanguera;-23.4300;-46.7900
+Barra Funda;-23.5250;-46.6650
+Perdizes;-23.5360;-46.6770
+Lapa;-23.5250;-46.7050
+Vila Leopoldina;-23.5280;-46.7330
+Jaguaré;-23.5480;-46.7450
+Jaguara;-23.5100;-46.7450
+Alto de Pinheiros;-23.5510;-46.7120
+Pinheiros;-23.5672;-46.6917
+Jardim Paulista;-23.5720;-46.6590
+Itaim Bibi;-23.5850;-46.6800
+Moema;-23.6009;-46.6624
+Vila Mariana;-23.5890;-46.6350
+Saúde;-23.6170;-46.6390
+Ipiranga;-23.5900;-46.6100
+Sacomã;-23.6000;-46.6000
+Cursino;-23.6220;-46.6180
+Jabaquara;-23.6440;-46.6420
+Campo Belo;-23.6230;-46.6680
+Santo Amaro;-23.6540;-46.7080
+Butantã;-23.5740;-46.7080
+Rio Pequeno;-23.5680;-46.7570
+Raposo Tavares;-23.5900;-46.7800
+Vila Sônia;-23.6000;-46.7360
+Morumbi;-23.6000;-46.7200
+Vila Andrade;-23.6250;-46.7350
+Campo Limpo;-23.6470;-46.7590
+Capão Redondo;-23.6720;-46.7790
+Jardim São Luís;-23.6650;-46.7380
+Jardim Ângela;-23.7100;-46.7700
+Socorro;-23.6800;-46.7000
+Campo Grande;-23.6800;-46.6800
+Cidade Ademar;-23.6730;-46.6550
+Pedreira;-23.6950;-46.6550
+Cidade Dutra;-23.7150;-46.7000
+Grajaú;-23.7700;-46.6800
+Parelheiros;-23.8300;-46.7300

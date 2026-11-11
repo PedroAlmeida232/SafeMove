@@ -4,6 +4,7 @@ import { chaveCoord, type Coordenada } from '../utils/geo';
 import { request } from './client';
 import type {
   AreaRisco,
+  AvaliacaoArea,
   AvaliarRotaBody,
   Incidente,
   NovaOcorrencia,
@@ -35,6 +36,11 @@ export function buscarOcorrencias(c: Coordenada, raio = RAIO_OCORRENCIAS) {
 
 export function buscarIncidentes(c: Coordenada, raio = RAIO_INCIDENTES) {
   return request<Incidente[]>('/incidentes', { query: { lat: c.latitude, lng: c.longitude, raio } });
+}
+
+/** GET /areas-risco/avaliar — diz se a região do ponto é segura e traz o texto do alerta. */
+export function avaliarArea(c: Coordenada) {
+  return request<AvaliacaoArea>('/areas-risco/avaliar', { query: { lat: c.latitude, lng: c.longitude } });
 }
 
 export function avaliarRota(body: AvaliarRotaBody) {

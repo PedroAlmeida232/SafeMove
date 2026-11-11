@@ -92,8 +92,8 @@ export default function AlertasScreen() {
                 Nenhum alerta por enquanto
               </Text>
               <Text variant="secondary" color={colors.secondaryLabel} style={styles.vazioTexto}>
-                Inicie um trajeto e o SafeMove avisa se surgir um incidente grave perto da rota ou se ela ficar
-                arriscada.
+                O SafeMove avisa quando você entra numa região com muitos assaltos e roubos no último mês, se
+                surgir um incidente grave perto da rota ou se ela ficar arriscada.
               </Text>
               <TextButton title="Planejar rota" onPress={() => router.navigate('/rotas')} />
             </View>

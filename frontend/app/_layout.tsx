@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ApiError } from '../src/api/client';
 import { AuthProvider } from '../src/auth/AuthProvider';
+import { useAlertaAreaRisco } from '../src/hooks/useAlertaAreaRisco';
 import { useMonitorRota } from '../src/hooks/useMonitorRota';
 import { AlertasProvider } from '../src/state/AlertasStore';
 import { LocationProvider } from '../src/state/LocationProvider';
@@ -35,6 +36,12 @@ function MonitorDeRota() {
   return null;
 }
 
+/** Avisa quando o usuário está numa região que não é segura (assaltos e crimes do último mês). */
+function MonitorDeArea() {
+  useAlertaAreaRisco();
+  return null;
+}
+
 export default function RootLayout() {
   const [queryClient] = useState(criarQueryClient);
 
@@ -48,6 +55,7 @@ export default function RootLayout() {
                 <RotaProvider>
                   <BottomSheetModalProvider>
                     <MonitorDeRota />
+                    <MonitorDeArea />
                     <StatusBar style="dark" />
                     <Stack
                       screenOptions={{
