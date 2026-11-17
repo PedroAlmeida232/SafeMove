@@ -1,6 +1,6 @@
 package com.safemove.config;
 
-import com.safemove.web.JsonErrorHandlers;
+import com.safemove.exception.JsonErrorHandlers;
 import java.util.Arrays;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -34,8 +34,9 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(a -> a
                         .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/ocorrencias", "/incidentes", "/radares", "/areas-risco").permitAll()
-                        .requestMatchers("/error", "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/ocorrencias", "/ocorrencias/*", "/incidentes", "/incidentes/*",
+                                "/radares", "/areas-risco").permitAll()
+                        .requestMatchers("/", "/error", "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(e -> e.authenticationEntryPoint(erros).accessDeniedHandler(erros))
                 .oauth2ResourceServer(o -> o.jwt(Customizer.withDefaults()).authenticationEntryPoint(erros));

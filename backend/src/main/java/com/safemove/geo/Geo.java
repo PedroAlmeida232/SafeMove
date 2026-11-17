@@ -6,6 +6,9 @@ public final class Geo {
     /** Raio médio da Terra em metros (mesmo valor usado no app). */
     public static final double RAIO_TERRA_METROS = 6_371_000;
 
+    /** Grande São Paulo, a área atendida pelo SafeMove (~3.300 km²). */
+    public static final Retangulo GRANDE_SAO_PAULO = new Retangulo(-24.01, -23.36, -46.83, -46.36);
+
     private static final double METROS_POR_GRAU_LATITUDE = Math.PI * RAIO_TERRA_METROS / 180;
 
     private Geo() {}

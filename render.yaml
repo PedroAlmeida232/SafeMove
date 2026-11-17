@@ -1,0 +1,25 @@
+# Blueprint do Render: New > Blueprint > selecione este repositório.
+# Os valores marcados com sync: false são pedidos no painel (não ficam no Git).
+services:
+  - type: web
+    name: safemove-api
+    runtime: docker
+    plan: free
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    healthCheckPath: /v3/api-docs
+    envVars:
+      - key: ORACLE_URL
+        value: jdbc:oracle:thin:@oracle.fiap.com.br:1521:ORCL
+      - key: ORACLE_USER
+        sync: false
+      - key: ORACLE_PASSWORD
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_API_KEY
+        sync: false
+      - key: TOMTOM_API_KEY
+        sync: false
+      - key: CORS_ORIGENS
+        value: http://localhost:8081,http://localhost:19006
