@@ -1,106 +1,81 @@
 # SafeMove
 
-App de mobilidade urbana para São Paulo: trânsito em tempo real, ocorrências registradas pelos usuários, radares, avaliação de segurança de rotas e registro de ocorrências.
+**A rota que vou fazer agora é boa e segura?** O SafeMove reúne, em um único mapa, trânsito em tempo real, ocorrências registradas pelos cidadãos e áreas de risco de São Paulo, e avisa o usuário antes e durante o trajeto.
 
-Expo (SDK 58) · TypeScript · expo-router · react-native-maps · Firebase Auth · TanStack Query · @gorhom/bottom-sheet · lucide-react-native.
+Global Solution 2026 · 2º semestre · FIAP · Engenharia de Software · CitizenTech
 
-## 1. Instalar
+## Ficha da CitizenTech
 
-Pré-requisitos: Node 20 ou mais recente e o app **Expo Go** (SDK 58) no celular, ou um simulador/emulador.
-
-```bash
-npm install
-```
-
-## 2. Configurar o `.env`
-
-```bash
-cp .env.example .env
-```
-
-| Variável | O que é |
+| | |
 |---|---|
-| `EXPO_PUBLIC_API_URL` | URL da API Java (veja a seção 4) |
-| `EXPO_PUBLIC_FIREBASE_API_KEY` | Console do Firebase › Configurações do projeto › Seus apps › app **Web** |
-| `EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN` | idem (ex.: `meu-projeto.firebaseapp.com`) |
-| `EXPO_PUBLIC_FIREBASE_PROJECT_ID` | idem |
-| `EXPO_PUBLIC_FIREBASE_APP_ID` | idem |
-| `EXPO_PUBLIC_USE_MOCK` | `true` usa os dados de exemplo de `src/mocks` (não chama a API) |
+| **Nome da CitizenTech** | SafeMove |
+| **Cidade e bairro** | São Paulo (capital), todos os bairros. Cenários de teste: Sé, Brás, Mooca e Itaquera |
+| **Cidadão beneficiado** | Quem se desloca todo dia por São Paulo a pé, de transporte público ou de carro, com atenção a quem circula à noite (estudantes, trabalhadores, motoristas de aplicativo) |
+| **Problema, em uma frase** | As informações de trânsito, transporte e segurança estão espalhadas em vários apps e não conversam, então o cidadão escolhe o caminho sem saber se ele é seguro |
+| **Como funciona** | O app mostra um mapa com trânsito (TomTom), ocorrências dos usuários e áreas de risco; avalia a rota escolhida, alerta quando há risco no trajeto e permite registrar ocorrências (assalto, buraco, acidente, alagamento, trânsito, iluminação) |
+| **O que cada parte faz** | `backend/`: API REST em Java (Spring Boot + Oracle) com login via Firebase, ocorrências e sincronização de incidentes da TomTom · `frontend/`: app mobile em React Native (Expo) · `docs/`: documentação da entrega de Java, script do banco e DER |
+| **Link do repositório** | https://github.com/PedroAlmeida232/SafeMove |
+| **Indicador de impacto** | Número de ocorrências registradas e confirmadas por outros usuários ("eu também vi") e percentual de trajetos em que o usuário trocou para a rota mais segura sugerida |
+| **ODS conectados** | ODS 11 (Cidades e comunidades sustentáveis, meta 11.2: transporte seguro) · ODS 3 (Saúde e bem-estar, meta 3.6: acidentes de trânsito) · ODS 16 (Paz, justiça e instituições eficazes, meta 16.1: redução da violência) |
 
-No Firebase, ative **Authentication › Método de login › E-mail/senha**.
+## Integrantes
 
-Nenhuma chave fica no código: tudo vem do `.env`, que está no `.gitignore`.
+| Nome | RM |
+|---|---|
+| Alexandre Martins Lucas | 561732 |
+| Gabriel Barbosa da Silva | 570133 |
+| Pedro Rodrigues Almeida | 564711 |
+| Vitor Carvalho Alexandre | 562298 |
 
-### Modo demonstração
+## Estrutura do repositório
 
-Com `EXPO_PUBLIC_USE_MOCK=true` o app responde com os dados de `src/mocks`, seguindo exatamente o contrato da API. Se as variáveis do Firebase estiverem vazias nesse modo, o login também é simulado: qualquer e-mail com senha de 6 ou mais caracteres funciona.
+```
+SafeMove/
+├── backend/     API REST Java 21 + Spring Boot (entrega de Domain Driven Design - Java)
+├── frontend/    App mobile Expo / React Native (veja frontend/README.md)
+├── docs/        ENTREGA-JAVA.md (endpoints, DER, diagrama de classes) e safemove-oracle.sql
+├── render.yaml  Deploy da API no Render
+├── SETUP.md     Como rodar o projeto inteiro em outro computador
+└── prompts.md   Registro do uso de IA
+```
 
-## 3. Rodar
+## Backend (Java) · resumo da entrega
+
+- **Camadas:** `model` (entidades JPA) → `dao` (acesso ao Oracle) → `bo` (regras de negócio) → `controller` (REST), com `exception` para o tratamento de erros.
+- **Requisições:** GET, POST, PUT e DELETE em `/usuarios/me` e `/ocorrencias`, além de `/auth/*` e `/incidentes`. Tabela completa em [`docs/ENTREGA-JAVA.md`](docs/ENTREGA-JAVA.md).
+- **Banco:** Oracle da FIAP (`oracle.fiap.com.br:1521:ORCL`). As tabelas são criadas pela aplicação; o script está em [`docs/safemove-oracle.sql`](docs/safemove-oracle.sql).
+- **Deploy:** Render, pelo `render.yaml` da raiz. Link: `<preencher com a URL do Render>`
+- **Documentação da API:** Swagger na raiz da URL (local: http://localhost:8080).
+
+### Rodar a API
+
+Ferramentas: JDK 21, IntelliJ IDEA (ou outra IDE Java). O Maven vem no wrapper (`mvnw`).
 
 ```bash
+cd backend
+cp .env.example .env      # preencha ORACLE_USER, ORACLE_PASSWORD, FIREBASE_*, TOMTOM_API_KEY
+./mvnw spring-boot:run    # com Oracle FIAP
+# ou, sem Oracle (H2 em memória):
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+Testes: `./mvnw test`. Passo a passo completo, incluindo o deploy no Render, em [`docs/ENTREGA-JAVA.md`](docs/ENTREGA-JAVA.md).
+
+## Frontend (app)
+
+```bash
+cd frontend
+npm install
+cp .env.example .env
 npx expo start
 ```
 
-Escaneie o QR code com o Expo Go (Android) ou com a câmera (iOS). Atalhos no terminal: `i` abre o simulador iOS e `a` abre o emulador Android.
+Detalhes em [`frontend/README.md`](frontend/README.md).
 
-Depois de mudar o `.env`, reinicie com cache limpo:
+## Dados
 
-```bash
-npx expo start -c
-```
+Nenhum dado pessoal real é usado. As ocorrências são cadastradas pelos próprios usuários (nos testes, dados simulados). Os incidentes de trânsito vêm da TomTom Traffic API (plano gratuito) e o mapa base é do OpenStreetMap (© colaboradores do OpenStreetMap, licença ODbL).
 
-Verificar os tipos:
+## Uso de IA
 
-```bash
-npm run typecheck
-```
-
-## 4. Apontar para a API local
-
-A API Java precisa estar rodando (por padrão na porta 8080).
-
-| Onde o app roda | `EXPO_PUBLIC_API_URL` |
-|---|---|
-| Simulador iOS | `http://localhost:8080` |
-| Emulador Android | `http://10.0.2.2:8080` |
-| Celular físico com Expo Go | `http://<IP-do-computador>:8080`, por exemplo `http://192.168.0.12:8080` |
-
-No celular físico, o computador e o celular precisam estar na mesma rede Wi-Fi, e a API precisa escutar em todas as interfaces (`server.address=0.0.0.0` no Spring). O `app.json` já libera HTTP sem TLS na rede local (`NSAllowsLocalNetworking` no iOS e `usesCleartextTraffic` no Android).
-
-As rotas marcadas com 🔒 recebem `Authorization: Bearer <idToken>` do Firebase. Os erros no formato ProblemDetail (`{ status, detail, campos? }`) aparecem para o usuário com o texto de `detail`.
-
-## Estrutura
-
-```
-app/                      rotas (expo-router)
-  _layout.tsx             providers: React Query, Auth, Localização, Alertas, Rota, GestureHandler, BottomSheet
-  login.tsx               login e cadastro (modal)
-  (tabs)/                 Mapa (01), Rotas (02), Alertas (05), Perfil; "Reportar" abre o modal
-  rota/alerta.tsx         03 · rota com risco
-  rota/alternativa.tsx    04 · rota mais segura e trajeto em andamento
-  reportar/index.tsx      06 · nova ocorrência (modal)
-  reportar/enviada.tsx    07 · ocorrência enviada
-src/
-  theme/tokens.ts         cores, tipografia, raios, sombras
-  components/             componentes do design system (SearchBar, Pill, Sheet, GroupedList, Row, IconTile,
-                          Switch, PrimaryButton, TextButton, StatBlock, map/MapPin, map/UserDot,
-                          map/RiskCircle, map/RouteLine…)
-  api/                    client.ts (fetch, token e ProblemDetail), hooks.ts (React Query), types.ts (contrato)
-  auth/                   Firebase Auth com persistência em AsyncStorage
-  state/                  localização, rota planejada/ativa e alertas
-  hooks/useMonitorRota.ts notificações locais durante o trajeto
-  mocks/                  dados de exemplo (só com EXPO_PUBLIC_USE_MOCK=true)
-  utils/                  format.ts ("há X min", km, min), geo.ts, incidente.ts, ocorrencia.ts
-```
-
-## Comportamentos
-
-- **Mapa**: centraliza na sua posição (ou na Praça da Sé, se a permissão for negada). Incidentes e ocorrências são recarregados a cada 60 s. A pílula "N alertas perto de você" soma os incidentes graves (gravidade 3 ou mais) e as ocorrências num raio de 2 km.
-- **Login**: só é pedido ao tocar em **Reportar** ou em **Eu também vi**. O mapa e as rotas funcionam sem login.
-- **Notificações (05)**: durante um trajeto iniciado, o app verifica a cada 60 s se há incidente grave a até 300 m da rota e reavalia a rota (`POST /rotas/avaliar`). Se a rota piorar para ATENCAO ou EVITE, dispara uma notificação local (expo-notifications). As notificações ficam listadas na aba Alertas.
-- **Círculos de risco na tela 03**: a API não envia coordenadas para os `alertas`, que são só texto. Por isso, os círculos marcam as ocorrências recentes a até 150 m do trajeto (`GET /ocorrencias`) e as áreas de risco de nível 3 ou mais cruzadas pela rota (`GET /areas-risco`).
-
-## Observações para builds fora do Expo Go
-
-- Android: o Google Maps precisa de uma chave em `android.config.googleMaps.apiKey` no `app.json` (no Expo Go não precisa).
-- Gere o build de desenvolvimento com `npx expo run:ios`, `npx expo run:android` ou `eas build`.
+A IA foi usada como copiloto para aprender, gerar e revisar código e documentação. Os prompts estão registrados em [`prompts.md`](prompts.md).
