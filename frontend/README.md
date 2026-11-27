@@ -104,3 +104,18 @@ src/
 
 - Android: o Google Maps precisa de uma chave em `android.config.googleMaps.apiKey` no `app.json` (no Expo Go não precisa).
 - Gere o build de desenvolvimento com `npx expo run:ios`, `npx expo run:android` ou `eas build`.
+
+## Publicar na App Store
+
+O passo a passo completo (contas, build com EAS, TestFlight, App Store Connect e o que falta antes de enviar) está em [`../docs/APP-STORE.md`](../docs/APP-STORE.md). Resumo:
+
+```bash
+npm install -g eas-cli
+eas login
+eas init
+npm run build:ios      # build de produção na nuvem do Expo
+npm run submit:ios     # envia para a App Store Connect / TestFlight
+```
+
+O build de produção usa as variáveis do `eas.json` (API do Render, sem dados de exemplo), não o seu `.env`.
+

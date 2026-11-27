@@ -1,12 +1,14 @@
 import { router } from 'expo-router';
-import { Camera, MapPin, X } from 'lucide-react-native';
+import { Camera, Flag, MapPin, X } from 'lucide-react-native';
 import { useState, type ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ActionSheetIOS, Alert, Platform, StyleSheet, View } from 'react-native';
 
 import { mensagemDeErro } from '../../api/client';
 import { useConfirmarOcorrencia } from '../../api/hooks';
 import type { Incidente, Ocorrencia, Radar } from '../../api/types';
 import { useAuth } from '../../auth/AuthProvider';
+import { escreverParaSuporte } from '../../config/links';
+import { ocultarOcorrencia } from '../../state/ocultas';
 import { colors } from '../../theme/tokens';
 import { haQuantoTempo, segundosParaMinutos } from '../../utils/format';
 import type { Coordenada } from '../../utils/geo';
@@ -57,6 +59,52 @@ function Cabecalho({
       </Touchable>
     </View>
   );
+}
+
+/**
+ * Diretriz 1.2 da App Store (conteúdo gerado por usuários): toda ocorrência pode ser
+ * denunciada (vai para o e-mail de suporte) ou ocultada só para quem está vendo.
+ */
+function opcoesDeDenuncia(item: Ocorrencia, onClose: () => void) {
+  const denunciar = () => {
+    ocultarOcorrencia(item.id);
+    onClose();
+    escreverParaSuporte(
+      `Denúncia de ocorrência #${item.id}`,
+      [
+        `Ocorrência: #${item.id} (${item.tipo})`,
+        `Registrada em: ${item.criadoEm}`,
+        item.descricao ? `Texto: "${item.descricao}"` : null,
+        '',
+        'Motivo da denúncia (falsa, ofensiva, dados pessoais, outro):',
+        '',
+      ]
+        .filter((l) => l !== null)
+        .join('\n'),
+    );
+  };
+  const ocultar = () => {
+    ocultarOcorrencia(item.id);
+    onClose();
+  };
+
+  if (Platform.OS === 'ios') {
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        title: 'Esta ocorrência é falsa ou ofensiva?',
+        options: ['Denunciar ocorrência', 'Ocultar para mim', 'Cancelar'],
+        destructiveButtonIndex: 0,
+        cancelButtonIndex: 2,
+      },
+      (i) => (i === 0 ? denunciar() : i === 1 ? ocultar() : undefined),
+    );
+    return;
+  }
+  Alert.alert('Esta ocorrência é falsa ou ofensiva?', undefined, [
+    { text: 'Denunciar ocorrência', style: 'destructive', onPress: denunciar },
+    { text: 'Ocultar para mim', onPress: ocultar },
+    { text: 'Cancelar', style: 'cancel' },
+  ]);
 }
 
 function DetalheOcorrencia({ item, onClose }: { item: Ocorrencia; onClose: () => void }) {
@@ -113,6 +161,18 @@ function DetalheOcorrencia({ item, onClose }: { item: Ocorrencia; onClose: () =>
           accessibilityHint={usuario ? undefined : 'Você precisará entrar na sua conta'}
         />
       )}
+      <Touchable
+        onPress={() => opcoesDeDenuncia(item, onClose)}
+        style={styles.denunciar}
+        hitSlop={6}
+        accessibilityRole="button"
+        accessibilityLabel="Denunciar ou ocultar esta ocorrência"
+      >
+        <Flag size={14} color={colors.secondaryLabel} strokeWidth={2} />
+        <Text variant="caption" color={colors.secondaryLabel}>
+          Denunciar ou ocultar
+        </Text>
+      </Touchable>
     </View>
   );
 }
@@ -244,5 +304,14 @@ const styles = StyleSheet.create({
   button: {
     marginHorizontal: 16,
     marginTop: 16,
+  },
+  denunciar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    gap: 6,
+    minHeight: 44,
+    paddingHorizontal: 12,
+    marginTop: 4,
   },
 });

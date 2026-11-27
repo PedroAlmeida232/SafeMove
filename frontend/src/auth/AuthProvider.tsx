@@ -20,6 +20,8 @@ type AuthContextValue = {
   entrar: (email: string, senha: string) => Promise<void>;
   criarConta: (nome: string, email: string, senha: string) => Promise<void>;
   sair: () => Promise<void>;
+  /** Exclui a conta no backend (DELETE /usuarios/me) e encerra a sessão. */
+  excluirConta: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -144,9 +146,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const sair = useCallback(() => limparSessao(), [limparSessao]);
 
+  const excluirConta = useCallback(async () => {
+    await request<void>('/usuarios/me', { method: 'DELETE', auth: true });
+    await limparSessao();
+    queryClient.invalidateQueries({ queryKey: ['ocorrencias'] });
+  }, [limparSessao, queryClient]);
+
   const value = useMemo(
-    () => ({ usuario, carregando, entrar, criarConta, sair }),
-    [usuario, carregando, entrar, criarConta, sair],
+    () => ({ usuario, carregando, entrar, criarConta, sair, excluirConta }),
+    [usuario, carregando, entrar, criarConta, sair, excluirConta],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

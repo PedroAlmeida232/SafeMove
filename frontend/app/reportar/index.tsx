@@ -28,6 +28,7 @@ import { Row } from '../../src/components/Row';
 import { Text } from '../../src/components/Text';
 import { useEndereco } from '../../src/hooks/useEndereco';
 import { useLocation } from '../../src/state/LocationProvider';
+import { temConteudoImproprio } from '../../src/utils/moderacao';
 import { colors, radii, spacing, type as typography } from '../../src/theme/tokens';
 import type { Coordenada } from '../../src/utils/geo';
 import { META_OCORRENCIA, TIPOS_OCORRENCIA } from '../../src/utils/ocorrencia';
@@ -69,7 +70,9 @@ export default function NovaOcorrenciaScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { usuario, carregando: carregandoAuth } = useAuth();
-  const { posicao, centro } = useLocation();
+  const { posicao: posicaoReal, centro, foraDeSaoPaulo } = useLocation();
+  // Fora de São Paulo não sugerimos a posição atual: a API só aceita ocorrências na cidade.
+  const posicao = foraDeSaoPaulo ? null : posicaoReal;
   const criar = useCriarOcorrencia();
 
   const [tipo, setTipo] = useState<TipoOcorrencia | null>(null);
@@ -77,6 +80,7 @@ export default function NovaOcorrenciaScreen() {
   const [ponto, setPonto] = useState<Coordenada | null>(posicao);
   const [ajustado, setAjustado] = useState(false);
   const [mapaAberto, setMapaAberto] = useState(false);
+  const [erroTexto, setErroTexto] = useState<string | null>(null);
   const { endereco, carregando: carregandoEndereco } = useEndereco(ponto);
 
   // Quando a posição chega depois de abrir o modal, usa-a (se o usuário não ajustou).
@@ -95,6 +99,12 @@ export default function NovaOcorrenciaScreen() {
   const enviar = () => {
     if (!tipo || !ponto) return;
     const texto = descricao.trim();
+    if (texto && temConteudoImproprio(texto)) {
+      setErroTexto('A descrição tem palavras ofensivas. Revise o texto antes de enviar.');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => undefined);
+      return;
+    }
+    setErroTexto(null);
     criar.mutate(
       { tipo, latitude: ponto.latitude, longitude: ponto.longitude, ...(texto ? { descricao: texto } : {}) },
       {
@@ -169,7 +179,10 @@ export default function NovaOcorrenciaScreen() {
           <View style={styles.descricaoBox}>
             <TextInput
               value={descricao}
-              onChangeText={setDescricao}
+              onChangeText={(t) => {
+                setDescricao(t);
+                if (erroTexto) setErroTexto(null);
+              }}
               maxLength={MAX_DESCRICAO}
               multiline
               placeholder="Conte o que você viu (opcional)"
@@ -183,9 +196,13 @@ export default function NovaOcorrenciaScreen() {
             </Text>
           </View>
 
-          {criar.error ? (
+          <Text variant="caption" color={colors.secondaryLabel} style={styles.aviso}>
+            Sua ocorrência fica visível para outras pessoas, sem seu nome. Não escreva dados pessoais nem ofensas.
+          </Text>
+
+          {erroTexto || criar.error ? (
             <Text variant="secondary" color={colors.redText} style={styles.erro} accessibilityLiveRegion="polite">
-              {mensagemDeErro(criar.error)}
+              {erroTexto ?? mensagemDeErro(criar.error)}
             </Text>
           ) : null}
 
@@ -270,6 +287,10 @@ const styles = StyleSheet.create({
   contador: {
     textAlign: 'right',
     marginTop: 4,
+  },
+  aviso: {
+    marginTop: 8,
+    paddingHorizontal: 4,
   },
   erro: {
     marginTop: 16,

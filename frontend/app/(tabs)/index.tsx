@@ -4,13 +4,12 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Camera, Car, Shield, ShieldCheck, TriangleAlert } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Keyboard, Linking, StyleSheet, View } from 'react-native';
-import type MapView from 'react-native-maps';
+import MapView, { PROVIDER_DEFAULT } from 'react-native-maps';
 
 import { mensagemDeErro } from '../../src/api/client';
 import { useAreasRisco, useIncidentes, useOcorrencias, useRadares } from '../../src/api/hooks';
 import { GroupedList } from '../../src/components/GroupedList';
 import { IconTile } from '../../src/components/IconTile';
-import { BaseMap } from '../../src/components/map/BaseMap';
 import { MapButtons } from '../../src/components/map/MapButtons';
 import { MapPin } from '../../src/components/map/MapPin';
 import { PinDetail, type Selecao } from '../../src/components/map/PinDetail';
@@ -65,7 +64,7 @@ export default function MapaScreen() {
   const mapRef = useRef<MapView>(null);
   const sheetRef = useRef<BottomSheet>(null);
   const topo = useTopoFlutuante();
-  const { posicao, centro, permissao, pedirPermissao } = useLocation();
+  const { posicao, centro, foraDeSaoPaulo, permissao, pedirPermissao } = useLocation();
   const { iniciais, logado } = useIdentidade();
   const { ativo } = useRotas();
   const params = useLocalSearchParams<{ focoLat?: string; focoLng?: string }>();
@@ -91,9 +90,9 @@ export default function MapaScreen() {
   useEffect(() => {
     if (posicao && !centralizouRef.current) {
       centralizouRef.current = true;
-      mapRef.current?.animateToRegion({ ...posicao, ...DELTA }, 500);
+      if (!foraDeSaoPaulo) mapRef.current?.animateToRegion({ ...posicao, ...DELTA }, 500);
     }
-  }, [posicao]);
+  }, [posicao, foraDeSaoPaulo]);
 
   // Foco vindo de outra tela (ex.: depois de enviar uma ocorrência).
   useEffect(() => {
@@ -121,6 +120,11 @@ export default function MapaScreen() {
   const alternar = (chave: keyof Camadas) => (v: boolean) => setCamadas((c) => ({ ...c, [chave]: v }));
 
   const centralizar = () => {
+    if (posicao && foraDeSaoPaulo) {
+      mapRef.current?.animateToRegion({ ...centro, ...DELTA }, 400);
+      Alert.alert('Fora da área do SafeMove', 'Por enquanto o SafeMove cobre só a cidade de São Paulo. Mostrando o centro da cidade.');
+      return;
+    }
     if (posicao) {
       mapRef.current?.animateToRegion({ ...posicao, ...DELTA }, 400);
       return;
@@ -177,9 +181,10 @@ export default function MapaScreen() {
 
   return (
     <View style={styles.container}>
-      <BaseMap
+      <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFill}
+        provider={PROVIDER_DEFAULT}
         initialRegion={{ ...centro, ...DELTA }}
         showsUserLocation={false}
         showsMyLocationButton={false}
@@ -258,7 +263,7 @@ export default function MapaScreen() {
         ) : null}
 
         {posicao ? <UserDot coordinate={posicao} /> : null}
-      </BaseMap>
+      </MapView>
 
       <View style={[styles.topo, { top: topo }]} pointerEvents="box-none">
         <SearchBar
