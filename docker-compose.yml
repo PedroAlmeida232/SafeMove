@@ -1,4 +1,4 @@
-# Servidor caseiro (Ubuntu): API SafeMove + túnel Cloudflare.
+# Servidor caseiro (Ubuntu): API SafeMove (publicada com Tailscale Funnel; túnel Cloudflare opcional).
 # Guia completo: docs/SERVIDOR-CASA.md
 #
 #   cp servidor.env.example servidor.env   # preencha os valores
@@ -16,12 +16,13 @@ services:
       JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=60"
       TZ: America/Sao_Paulo
     mem_limit: 768m
-    # Sem "ports": a API só é acessível pelo túnel (rede interna do Docker).
-    # Para testar na própria máquina, descomente:
-    # ports:
-    #   - "127.0.0.1:8080:8080"
+    # Só o próprio notebook enxerga a porta; o Tailscale Funnel publica na internet.
+    ports:
+      - "127.0.0.1:8080:8080"
 
+  # Opcional: só sobe com `docker compose --profile cloudflare up -d` (alternativa ao Tailscale).
   tunel:
+    profiles: ["cloudflare"]
     image: cloudflare/cloudflared:latest
     container_name: safemove-tunel
     restart: unless-stopped
@@ -29,3 +30,4 @@ services:
     env_file: servidor.env   # lê TUNNEL_TOKEN
     depends_on:
       - api
+    # No Cloudflare, o serviço do Public Hostname é http://api:8080
