@@ -1,5 +1,7 @@
 package com.safemove.geo;
 
+import java.util.List;
+
 /** Cálculos geográficos sobre uma Terra esférica (raio médio de 6.371 km). */
 public final class Geo {
 
@@ -57,5 +59,37 @@ public final class Geo {
         double minLng = Math.max(-180, centro.longitude() - dLng);
         double maxLng = Math.min(180, centro.longitude() + dLng);
         return new Retangulo(minLat, maxLat, minLng, maxLng);
+    }
+
+    /**
+     * Menor distância em metros de um ponto até uma linha (rota), segmento a segmento.
+     * Usa projeção plana local, precisa o bastante para distâncias de poucos quilômetros.
+     */
+    public static double distanciaAteRota(Coordenada p, List<Coordenada> rota) {
+        if (rota.isEmpty()) {
+            return Double.POSITIVE_INFINITY;
+        }
+        if (rota.size() == 1) {
+            return distanciaMetros(p, rota.get(0));
+        }
+        double cosLat = Math.cos(Math.toRadians(p.latitude()));
+        double menor = Double.POSITIVE_INFINITY;
+        for (int i = 0; i < rota.size() - 1; i++) {
+            Coordenada a = rota.get(i);
+            Coordenada b = rota.get(i + 1);
+            // Coordenadas em metros relativas a p.
+            double ax = Math.toRadians(a.longitude() - p.longitude()) * cosLat * RAIO_TERRA_METROS;
+            double ay = Math.toRadians(a.latitude() - p.latitude()) * RAIO_TERRA_METROS;
+            double bx = Math.toRadians(b.longitude() - p.longitude()) * cosLat * RAIO_TERRA_METROS;
+            double by = Math.toRadians(b.latitude() - p.latitude()) * RAIO_TERRA_METROS;
+            double dx = bx - ax;
+            double dy = by - ay;
+            double comprimento2 = dx * dx + dy * dy;
+            double t = comprimento2 == 0 ? 0 : Math.max(0, Math.min(1, -(ax * dx + ay * dy) / comprimento2));
+            double x = ax + t * dx;
+            double y = ay + t * dy;
+            menor = Math.min(menor, Math.sqrt(x * x + y * y));
+        }
+        return menor;
     }
 }

@@ -1,15 +1,17 @@
 import * as Location from 'expo-location';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
-import { PRACA_DA_SE, type Coordenada } from '../utils/geo';
+import { dentroDeSaoPaulo, PRACA_DA_SE, type Coordenada } from '../utils/geo';
 
 type Permissao = 'pendente' | 'concedida' | 'negada';
 
 type LocationContextValue = {
   /** Posição real do usuário (null se negada ou ainda não obtida). */
   posicao: Coordenada | null;
-  /** Posição do usuário ou, na falta dela, a Praça da Sé. */
+  /** Posição do usuário ou, se ela faltar ou estiver fora de São Paulo, a Praça da Sé. */
   centro: Coordenada;
+  /** true quando a posição real está fora da cidade (o app só cobre São Paulo). */
+  foraDeSaoPaulo: boolean;
   permissao: Permissao;
   pedirPermissao: () => Promise<void>;
 };
@@ -56,15 +58,18 @@ export function LocationProvider({ children }: { children: ReactNode }) {
 
   const pedirPermissao = useCallback(async () => setTentativa((t) => t + 1), []);
 
-  const value = useMemo<LocationContextValue>(
-    () => ({
-      posicao: posicao ? { latitude: posicao.latitude, longitude: posicao.longitude } : null,
-      centro: posicao ? { latitude: posicao.latitude, longitude: posicao.longitude } : PRACA_DA_SE,
+  const value = useMemo<LocationContextValue>(() => {
+    const atual = posicao ? { latitude: posicao.latitude, longitude: posicao.longitude } : null;
+    // Fora de São Paulo (ex.: revisor da App Store nos EUA) o mapa ficaria vazio: mostramos o centro da cidade.
+    const fora = atual !== null && !dentroDeSaoPaulo(atual);
+    return {
+      posicao: atual,
+      centro: atual && !fora ? atual : PRACA_DA_SE,
+      foraDeSaoPaulo: fora,
       permissao,
       pedirPermissao,
-    }),
-    [posicao, permissao, pedirPermissao],
-  );
+    };
+  }, [posicao, permissao, pedirPermissao]);
 
   return <LocationContext.Provider value={value}>{children}</LocationContext.Provider>;
 }

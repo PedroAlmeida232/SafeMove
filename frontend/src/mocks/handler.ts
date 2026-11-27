@@ -165,6 +165,8 @@ export async function mockRequest<T>(method: Metodo, caminho: string, body: unkn
     return responder({ token: 'demo-token', refreshToken: 'demo-refresh', usuario });
   }
   if (method === 'GET' && path === '/usuarios/me') return responder(usuarioMock);
+  if (method === 'DELETE' && path === '/usuarios/me') return responder(null);
+  if (method === 'POST' && path === '/auth/recuperar-senha') return responder(null);
 
   if (method === 'POST' && path === '/rotas/avaliar') {
     return responder(rotasMock(body as AvaliarRotaBody));
