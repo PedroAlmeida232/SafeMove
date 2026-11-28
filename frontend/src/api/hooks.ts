@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { useOcorrenciasOcultas } from '../state/ocultas';
 import { chaveCoord, type Coordenada } from '../utils/geo';
 import { request } from './client';
 import type {
@@ -44,9 +45,12 @@ export function avaliarRota(body: AvaliarRotaBody) {
 /** GET /ocorrencias — recarrega a cada 60 s. */
 export function useOcorrencias(centro: Coordenada | null, enabled = true) {
   const [lat, lng] = centro ? chaveCoord(centro) : [0, 0];
+  const ocultas = useOcorrenciasOcultas();
   return useQuery({
     queryKey: queryKeys.ocorrencias(lat, lng),
     queryFn: () => buscarOcorrencias({ latitude: lat, longitude: lng }),
+    // Tira do mapa as ocorrências que o usuário denunciou ou ocultou.
+    select: (lista) => (ocultas.size ? lista.filter((o) => !ocultas.has(o.id)) : lista),
     enabled: enabled && centro !== null,
     refetchInterval: UM_MINUTO,
     placeholderData: (anterior) => anterior,
@@ -109,6 +113,11 @@ export function useConfirmarOcorrencia() {
       request<Ocorrencia>(`/ocorrencias/${id}/confirmar`, { method: 'POST', auth: true }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['ocorrencias'] }),
   });
+}
+
+/** POST /auth/recuperar-senha */
+export function recuperarSenha(email: string) {
+  return request<void>('/auth/recuperar-senha', { method: 'POST', body: { email: email.trim() } });
 }
 
 /** 🔒 GET /usuarios/me */

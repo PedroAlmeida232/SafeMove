@@ -10,4 +10,4 @@ export class ApiError extends Error {
   }
 }
 
-export type Metodo = 'GET' | 'POST';
+export type Metodo = 'GET' | 'POST' | 'PUT' | 'DELETE';

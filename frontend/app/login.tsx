@@ -1,14 +1,16 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState, type ComponentProps } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, type TextInputInstance } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, type TextInputInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { mensagemDeErro, USE_MOCK } from '../src/api/client';
+import { recuperarSenha } from '../src/api/hooks';
 import { useAuth } from '../src/auth/AuthProvider';
 import { AppLogo } from '../src/components/AppLogo';
 import { PrimaryButton, TextButton } from '../src/components/Buttons';
 import { GroupedList } from '../src/components/GroupedList';
 import { Text } from '../src/components/Text';
+import { abrirLink, URL_PRIVACIDADE } from '../src/config/links';
 import { colors, spacing, type as typography } from '../src/theme/tokens';
 
 type Modo = 'entrar' | 'criar';
@@ -75,6 +77,21 @@ export default function LoginScreen() {
       setErro(mensagemDeErro(e));
     } finally {
       setEnviando(false);
+    }
+  };
+
+  const esqueciSenha = async () => {
+    setErro(null);
+    if (!email.trim().includes('@')) {
+      setErro('Digite seu e-mail acima para receber o link de redefinição.');
+      emailRef.current?.focus();
+      return;
+    }
+    try {
+      await recuperarSenha(email);
+      Alert.alert('Confira seu e-mail', `Se houver uma conta para ${email.trim()}, enviamos um link para criar uma nova senha.`);
+    } catch (e) {
+      setErro(mensagemDeErro(e));
     }
   };
 
@@ -169,6 +186,22 @@ export default function LoginScreen() {
           }}
           style={styles.alternar}
         />
+        {criando ? (
+          <Text variant="caption" color={colors.secondaryLabel} style={styles.termos}>
+            Ao criar a conta, você concorda com a{' '}
+            <Text
+              variant="caption"
+              color={colors.accent}
+              onPress={() => abrirLink(URL_PRIVACIDADE)}
+              accessibilityRole="link"
+            >
+              Política de Privacidade
+            </Text>
+            .
+          </Text>
+        ) : (
+          <TextButton title="Esqueci minha senha" weight="regular" onPress={esqueciSenha} style={styles.alternar} />
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -231,5 +264,10 @@ const styles = StyleSheet.create({
   alternar: {
     alignSelf: 'center',
     marginTop: 8,
+  },
+  termos: {
+    textAlign: 'center',
+    marginTop: 12,
+    paddingHorizontal: 16,
   },
 });

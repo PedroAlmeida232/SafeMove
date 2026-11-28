@@ -13,7 +13,7 @@ Global Solution 2026 · 2º semestre · FIAP · Engenharia de Software · Citize
 | **Cidadão beneficiado** | Quem se desloca todo dia por São Paulo a pé, de transporte público ou de carro, com atenção a quem circula à noite (estudantes, trabalhadores, motoristas de aplicativo) |
 | **Problema, em uma frase** | As informações de trânsito, transporte e segurança estão espalhadas em vários apps e não conversam, então o cidadão escolhe o caminho sem saber se ele é seguro |
 | **Como funciona** | O app mostra um mapa com trânsito (TomTom), ocorrências dos usuários e áreas de risco; avalia a rota escolhida, alerta quando há risco no trajeto e permite registrar ocorrências (assalto, buraco, acidente, alagamento, trânsito, iluminação) |
-| **O que cada parte faz** | `backend/`: API REST em Java (Spring Boot + Oracle) com login via Firebase, ocorrências e sincronização de incidentes da TomTom · `frontend/`: app mobile em React Native (Expo) · `docs/`: documentação da entrega de Java, script do banco e DER |
+| **O que cada parte faz** | `backend/`: API REST em Java (Spring Boot + Oracle) com login via Firebase, ocorrências, incidentes da TomTom, radares do OpenStreetMap, áreas de risco e avaliação de rotas · `frontend/`: app mobile em React Native (Expo) · `docs/`: documentação da entrega de Java, script do banco e DER |
 | **Link do repositório** | https://github.com/PedroAlmeida232/SafeMove |
 | **Indicador de impacto** | Número de ocorrências registradas e confirmadas por outros usuários ("eu também vi") e percentual de trajetos em que o usuário trocou para a rota mais segura sugerida |
 | **ODS conectados** | ODS 11 (Cidades e comunidades sustentáveis, meta 11.2: transporte seguro) · ODS 3 (Saúde e bem-estar, meta 3.6: acidentes de trânsito) · ODS 16 (Paz, justiça e instituições eficazes, meta 16.1: redução da violência) |
@@ -42,9 +42,9 @@ SafeMove/
 ## Backend (Java) · resumo da entrega
 
 - **Camadas:** `model` (entidades JPA) → `dao` (acesso ao Oracle) → `bo` (regras de negócio) → `controller` (REST), com `exception` para o tratamento de erros.
-- **Requisições:** GET, POST, PUT e DELETE em `/usuarios/me` e `/ocorrencias`, além de `/auth/*` e `/incidentes`. Tabela completa em [`docs/ENTREGA-JAVA.md`](docs/ENTREGA-JAVA.md).
+- **Requisições:** GET, POST, PUT e DELETE em `/usuarios/me` e `/ocorrencias`, além de `/auth/*`, `/incidentes`, `/radares`, `/areas-risco` e `POST /rotas/avaliar`. Tabela completa em [`docs/ENTREGA-JAVA.md`](docs/ENTREGA-JAVA.md).
 - **Banco:** Oracle da FIAP (`oracle.fiap.com.br:1521:ORCL`). As tabelas são criadas pela aplicação; o script está em [`docs/safemove-oracle.sql`](docs/safemove-oracle.sql).
-- **Deploy:** Render, pelo `render.yaml` da raiz. Link: `<preencher com a URL do Render>`
+- **Deploy:** Render, pelo `render.yaml` da raiz. Link: https://safemove-sjiw.onrender.com (Swagger em `/swagger-ui/index.html`)
 - **Documentação da API:** Swagger na raiz da URL (local: http://localhost:8080).
 
 ### Rodar a API
@@ -74,7 +74,7 @@ Detalhes em [`frontend/README.md`](frontend/README.md).
 
 ## Dados
 
-Nenhum dado pessoal real é usado. As ocorrências são cadastradas pelos próprios usuários (nos testes, dados simulados). Os incidentes de trânsito vêm da TomTom Traffic API (plano gratuito) e o mapa base é do OpenStreetMap (© colaboradores do OpenStreetMap, licença ODbL).
+Nenhum dado pessoal real é usado. As ocorrências são cadastradas pelos próprios usuários (nos testes, dados simulados). Os incidentes de trânsito e as rotas vêm da TomTom (plano gratuito); os radares e o mapa base são do OpenStreetMap (© colaboradores do OpenStreetMap, licença ODbL).
 
 ## Uso de IA
 

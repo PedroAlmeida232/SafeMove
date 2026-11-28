@@ -36,6 +36,7 @@ public class SecurityConfig {
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/ocorrencias", "/ocorrencias/*", "/incidentes", "/incidentes/*",
                                 "/radares", "/areas-risco").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/rotas/avaliar").permitAll()
                         .requestMatchers("/", "/error", "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(e -> e.authenticationEntryPoint(erros).accessDeniedHandler(erros))
