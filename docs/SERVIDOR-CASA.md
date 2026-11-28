@@ -1,85 +1,90 @@
-# SafeMove: servidor no notebook (Ubuntu)
+# SafeMove: servidor no notebook (Ubuntu) com Tailscale Funnel
 
-Hospeda a API em um notebook em casa, com HTTPS público pelo **Cloudflare Tunnel**
-(grátis, sem abrir porta no roteador, funciona atrás de CGNAT).
+Hospeda a API em um notebook em casa e a publica na internet com HTTPS usando o
+**Tailscale Funnel**: grátis, sem comprar domínio, sem abrir porta no roteador e funciona atrás de CGNAT.
 
-**Custo:** domínio (~R$ 40/ano) + luz (~R$ 7 a 10/mês). **Reserva:** o Render Free (`render.yaml`).
-
-## 0. Pré-requisitos
-- Notebook com Ubuntu, ligado na tomada, de preferência por cabo de rede.
-- Um domínio (ex.: `safemove.com.br`, no Registro.br). Precisa usar o DNS da Cloudflare.
-- Conta gratuita na Cloudflare (https://dash.cloudflare.com).
+**URL final (fixa):** `https://<nome-do-notebook>.<seu-tailnet>.ts.net`
+**Custo:** só a luz (~R$ 7 a 10/mês). **Reserva:** Render Free (`render.yaml`).
 
 ## 1. Instalar Docker
 ```bash
 curl -fsSL https://get.docker.com | sudo sh
-sudo usermod -aG docker $USER   # saia e entre na sessão de novo
+sudo usermod -aG docker $USER      # saia e entre na sessão de novo
 docker --version && docker compose version
 ```
 
 ## 2. Deixar o notebook ligado 24 h
 ```bash
-# Nunca suspender/hibernar
 sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
-# Fechar a tampa não faz nada
 sudo sed -i 's/^#\?HandleLidSwitch=.*/HandleLidSwitch=ignore/' /etc/systemd/logind.conf
 sudo sed -i 's/^#\?HandleLidSwitchExternalPower=.*/HandleLidSwitchExternalPower=ignore/' /etc/systemd/logind.conf
-sudo systemctl restart systemd-logind   # (a sessão gráfica pode reiniciar)
-# Atualizações de segurança automáticas
+sudo systemctl restart systemd-logind
 sudo apt install -y unattended-upgrades && sudo dpkg-reconfigure -plow unattended-upgrades
 ```
-- Na **BIOS**, procure *AC Power Recovery / Restore on AC Power Loss* e deixe **Power On**,
-  para o notebook ligar sozinho quando a energia voltar.
-- O Docker já sobe no boot e os contêineres usam `restart: unless-stopped`.
+Na **BIOS**, deixe *AC Power Recovery / Restore on AC Power Loss* em **Power On**.
 
-## 3. Baixar o projeto e configurar
+## 3. Subir a API
 ```bash
-git clone <URL-DO-SEU-REPOSITORIO> safemove && cd safemove
+git clone https://github.com/PedroAlmeida232/SafeMove.git safemove && cd safemove
 cp servidor.env.example servidor.env
-nano servidor.env        # preencha Oracle, Firebase e TomTom
+nano servidor.env            # Oracle, Firebase e TomTom (deixe TUNNEL_TOKEN vazio)
 chmod 600 servidor.env
+docker compose up -d --build   # a 1ª vez demora (compila o Maven)
+curl http://127.0.0.1:8080/v3/api-docs   # deve devolver JSON
 ```
-`servidor.env` guarda segredos: confira que está no `.gitignore`.
+O contêiner reinicia sozinho (`restart: unless-stopped`) e sobe no boot.
 
-## 4. Criar o túnel na Cloudflare
-1. Adicione o domínio na Cloudflare e troque os *nameservers* no Registro.br pelos que ela informar.
-2. Painel **Zero Trust > Networks > Tunnels > Create a tunnel > Cloudflared**, nome `safemove`.
-3. Copie o **token** do túnel e cole em `TUNNEL_TOKEN` no `servidor.env`.
-4. Em **Public Hostname**: subdomínio `api`, domínio `seudominio.com.br`,
-   serviço **HTTP** → `api:8080`.
+## 4. Instalar o Tailscale e publicar
+1. Crie a conta grátis em https://login.tailscale.com.
+2. No notebook:
+   ```bash
+   curl -fsSL https://tailscale.com/install.sh | sh
+   sudo tailscale up
+   ```
+   Abra o link que aparecer e autorize o notebook.
+3. No painel (https://login.tailscale.com/admin/dns): ative **MagicDNS** e **HTTPS Certificates**.
+4. Publique a porta 8080 na internet:
+   ```bash
+   sudo tailscale funnel --bg 8080
+   ```
+   Na primeira vez ele mostra um link para habilitar o Funnel na sua conta; abra, aceite e rode de novo.
+5. Veja a URL e teste (de outro dispositivo, fora da sua rede, se puder):
+   ```bash
+   tailscale funnel status
+   curl https://<nome>.<tailnet>.ts.net/v3/api-docs
+   ```
+O `--bg` mantém o Funnel ativo mesmo depois de reiniciar o notebook.
 
-## 5. Subir
-```bash
-docker compose up -d --build     # a 1ª vez demora (compila o Maven)
-docker compose logs -f api       # Ctrl+C para sair
-curl https://api.seudominio.com.br/v3/api-docs
-```
-Se o `curl` devolver JSON, a API está no ar com HTTPS.
-
-## 6. Apontar o app
-No `frontend/.env`, coloque `https://api.seudominio.com.br` na variável de URL da API
-(o nome está em `frontend/.env.example`). Para o build da loja, use a mesma URL em `eas.json`.
+## 5. Apontar o app
+Em `frontend/.env` e no `frontend/eas.json` (build da loja), use a URL
+`https://<nome>.<tailnet>.ts.net` na variável de URL da API (nome em `frontend/.env.example`).
+Para um nome mais curto, renomeie o notebook em https://login.tailscale.com/admin/machines.
 
 ## Operação do dia a dia
 | O que | Comando |
 |---|---|
-| Ver se está rodando | `docker compose ps` |
-| Logs | `docker compose logs -f api` |
+| Ver se está rodando | `docker compose ps` e `tailscale funnel status` |
+| Logs da API | `docker compose logs -f api` |
 | Atualizar o código | `git pull && docker compose up -d --build` |
-| Reiniciar | `docker compose restart api` |
-| Parar | `docker compose down` |
+| Reiniciar a API | `docker compose restart api` |
+| Parar a publicação | `sudo tailscale funnel reset` |
 
 ## Segurança
-- Nenhuma porta é aberta no roteador; só o túnel (conexão de saída) expõe a API.
-- A API não publica porta no host (`ports` comentado no compose).
-- Mantenha o Ubuntu atualizado e o `servidor.env` com `chmod 600`.
-- Mantenha o firewall ligado: `sudo ufw enable` (sem regras de entrada extras).
+- Nenhuma porta é aberta no roteador. O Funnel só encaminha o tráfego HTTPS para `127.0.0.1:8080`.
+- Mantenha o Ubuntu atualizado e o `servidor.env` com `chmod 600` (ele guarda segredos e não vai para o Git).
+- Ative o firewall: `sudo ufw enable` (sem regras de entrada extras).
 
-## Plano B (se o notebook cair)
-Faça o deploy no Render (`render.yaml`) e, na Cloudflare, mude o *Public Hostname*/CNAME de `api`
-para `safemove-api.onrender.com`. O app continua com a mesma URL.
+## Limites do Funnel
+- O Tailscale limita a banda do Funnel (valor não publicado). Para um app pequeno é suficiente.
+- A URL termina em `.ts.net`. Se quiser um domínio próprio, use o Cloudflare Tunnel (próxima seção).
 
-## Alternativa sem domínio: Tailscale Funnel
-Grátis e com URL fixa `nome.ts.net`, mas sem domínio próprio: instale o Tailscale
-(`curl -fsSL https://tailscale.com/install.sh | sh`), rode `sudo tailscale up` e
-`sudo tailscale funnel --bg 8080` (publique a porta 8080 no host descomentando `ports` no compose).
+## Plano B 1: Render
+Se o notebook cair, faça o deploy no Render (`render.yaml`) e troque a URL do app. Como o app embutido
+na loja aponta para uma URL fixa, **vale configurar um domínio próprio** (Plano B 2) para poder
+trocar o servidor sem publicar uma nova versão.
+
+## Plano B 2: Cloudflare Tunnel com domínio próprio (opcional)
+1. Adicione o domínio na Cloudflare; em **Zero Trust > Networks > Tunnels**, crie o túnel e copie o token.
+2. Coloque o token em `TUNNEL_TOKEN` no `servidor.env`.
+3. Public Hostname: `api.seudominio.com.br` → **HTTP** `api:8080`.
+4. `docker compose --profile cloudflare up -d`
